@@ -6,9 +6,9 @@ from google.cloud import translate_v2 as translate
 
 
 def translate_text(text, src_lang, dest_lang):
-    """Translates text into the target language.
+    """Translates text from src_lang to dest_lang.
 
-    Target must be an ISO 639-1 language code.
+    src_lang and dest_lang must be ISO 639-1 language codes.
     See https://g.co/cloud/translate/v2/translate-reference#supported_languages
     """
 
