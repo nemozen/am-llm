@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 '''Use pre-trained BERT to make an embedding for input text.
 
 '''

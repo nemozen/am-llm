@@ -1,2 +1,3 @@
 ./parser.py ".." | sort - > vocab_am.txt
 cat vocab_am.txt | ./translate.py > vocab_en.txt
+cat vocab_en.txt | ./bert_embedding.py --vectors > embedding.tsv
