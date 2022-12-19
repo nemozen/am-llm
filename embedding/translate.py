@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-import sys
 import six
+import sys
 from google.cloud import translate_v2 as translate
 
 
@@ -25,6 +25,6 @@ def translate_text(text, src_lang, dest_lang):
 
 
 if __name__ == "__main__":
-    
+
     for line in sys.stdin:
         print(translate_text(line.strip(), "am", "en"))
