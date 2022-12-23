@@ -8,8 +8,9 @@ import tensorflow_text as tf_text
 import amparser
 import bert_embedding
 
-TRANSLATED_VOCAB="vocab_en_test.txt"
+EMBEDDING_TSV="embedding_am.tsv"
 VOCAB_TSV="vocab_am.tsv"
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -18,23 +19,23 @@ logger.addHandler(handler)
 
 
 def get_ambert_weights():
-    """Load translated vocabulary (words are translated into english
-    phrases) and output phrase embedding using BERT (english).
+    """Load embedding (TSV of vectors) into a weight matrix.
     """
-    logger.info("Computing weights for {} ...".format(TRANSLATED_VOCAB))
+    logger.info("Loading weights from {} ...".format(EMBEDDING_TSV))
     bert = bert_embedding.Bert()
     linenum=0
     W = None
-    for line in open(TRANSLATED_VOCAB):
-        v = bert.phrase_embedding_vector(line)
-        if W is None:
-            W = np.array([v])
-        else:
-            W = np.append(W, [v], axis=0)
+    with open(EMBEDDING_TSV) as csvfile:
+        for row in csv.reader(csvfile, delimiter='\t'):
+            v = map(float, row)
+            if W is None:
+                W = np.array([v])
+            else:
+                W = np.append(W, [v], axis=0)
 
-        linenum += 1
-        if linenum % 1000 == 0:
-            logger.info("{} rows".format(linenum))
+            linenum += 1
+            if linenum % 10000 == 0:
+                logger.info("{} rows\r".format(linenum))
 
     logger.info("AmBert weights matrix: {} {}".format(type(W), W.shape))
     return W
@@ -68,7 +69,9 @@ class AmBert():
         ids = []
         for token in tokens.numpy()[0]:
             token = token.decode("utf-8")
-            ids.append(self.vocab_dict.get(token, 0))
+            tid = self.vocab_dict.get(token,
+                                      self.vocab_dict.get(bert_embedding.UNK))
+            ids.append(tid)
         return ids
 
     def encode(self, sentence):

@@ -1,5 +1,7 @@
 #!/usr/bin/python3
-'''Utilities to use pre-trained BERT embedding.
+'''Utility to bootstrap different embeddings from BERT. The new vocab
+is fed via stdin and we output vectors and/or a vocab dictionary with
+encoding ids stdout.
 
 '''
 import argparse
@@ -12,14 +14,20 @@ import tensorflow as tf
 import tensorflow_hub as hub
 from official.nlp.bert import tokenization
 
+# https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12
+BERT_BASE=os.path.join(os.getenv('HOME'), "bert_base")
+
+# Token and id for unknown word in BERT embedding. In the output
+# embeddings, we'll use the same token and give it id 0 (first row).
+UNK="[UNK]"
+UNK_ID=100
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
 
-# https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12
-BERT_BASE=os.path.join(os.getenv('HOME'), "bert_base")
 
 def get_tokenizer():
     tokenizer = tokenization.FullTokenizer(
@@ -97,6 +105,8 @@ if __name__ == '__main__':
 
     if args.vectors:
         bert = Bert()
+        # first row is UNK
+        print('\t'.join(str(x) for x in bert.weights[UNK_ID]))
         for line in sys.stdin:
             row = bert.phrase_embedding_vector(line.strip())
             print('\t'.join([str(x) for x in row]))
@@ -104,6 +114,8 @@ if __name__ == '__main__':
     if args.vocab:
         print("word\tid")
         wid = 0
+        # first row is UNK
+        print('{}\t{}'.format(UNK, wid))
         for line in sys.stdin:
-            print('{}\t{}'.format(line.strip(), wid))
             wid += 1
+            print('{}\t{}'.format(line.strip(), wid))
