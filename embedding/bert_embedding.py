@@ -105,5 +105,5 @@ if __name__ == '__main__':
         print("word\tid")
         wid = 0
         for line in sys.stdin:
-            wid += 1
             print('{}\t{}'.format(line.strip(), wid))
+            wid += 1
