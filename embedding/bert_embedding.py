@@ -39,8 +39,8 @@ def get_bert_weights():
 
 class BertMatrixInitializer(tf.keras.initializers.Initializer):
 
-    def __init__(self):
-        self.weights = get_bert_weights()
+    def __init__(self, weights):
+        self.weights = weights
 
     def __call__(self, shape, dtype=None):
         assert shape == self.weights.shape
@@ -84,7 +84,7 @@ class Bert():
         embedding_layer = tf.keras.layers.Embedding(
             self.weights.shape[0],  # vocab size
             self.weights.shape[1],  # embedding dims
-            embeddings_initializer=BertMatrixInitializer,
+            embeddings_initializer=BertMatrixInitializer(self.weights),
             input_length=input_length)
         return embedding_layer
 
