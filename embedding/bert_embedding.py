@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-'''Use pre-trained BERT to make an embedding for input text.
+'''Utilities to use pre-trained BERT embedding.
 
 '''
 import argparse
@@ -8,6 +8,7 @@ import numpy as np
 import os
 import scipy.linalg
 import sys
+import tensorflow as tf
 import tensorflow_hub as hub
 from official.nlp.bert import tokenization
 
@@ -18,30 +19,43 @@ handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
 
 # https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12
-BERT_BASE_DIR=os.path.join(os.getenv('HOME'), "bert_base")
-
+BERT_BASE=os.path.join(os.getenv('HOME'), "bert_base")
 
 def get_tokenizer():
     tokenizer = tokenization.FullTokenizer(
-        vocab_file=os.path.join(BERT_BASE_DIR, "assets", "vocab.txt"),
+        vocab_file=os.path.join(BERT_BASE, "assets", "vocab.txt"),
         do_lower_case=True)
     return tokenizer
 
 
 def get_bert_weights():
     """ Return  weight matrix (list of vectors) of bert embedding"""
-    bert_layer = hub.KerasLayer(BERT_BASE_DIR, trainable=True)
+    bert_layer = hub.KerasLayer(BERT_BASE, trainable=True)
     W = bert_layer.get_weights()[0]
     assert len(get_tokenizer().vocab) == W.shape[0], "tokenizer and emedding size mismatch"
     logger.info("bert weights matrix: {} {}".format(type(W), W.shape))
     return W
 
 
+class BertMatrixInitializer(tf.keras.initializers.Initializer):
+
+    def __init__(self):
+        self.weights = get_bert_weights()
+
+    def __call__(self, shape, dtype=None):
+        assert shape == self.weights.shape
+        assert dtype == 'float32'
+        return self.weights
+
+    def get_config(self):
+        return {'weights': self.weights}
+
+
 class Bert():
 
     def __init__(self):
         self.tokenizer = get_tokenizer()
-        self.bw = get_bert_weights()
+        self.weights = get_bert_weights()
 
     def encode(self, sentence):
         """sentence -> list of word ids"""
@@ -51,30 +65,28 @@ class Bert():
 
 
     def phrase_embedding_vector(self, phrase):
-        """Given a phrase, returns a vector of floats of size
-        embeddding_dims. 
+        """Given a string, returns a vector of floats of size embeddding_dims.
 
         Uses bert embedding on the word pieces to make a single
         vector, using simple vector addition, e.g. the vector for "foo
         bar" is the vector for "foo" + vector for "bar".
         https://medium.com/data-from-the-trenches/arithmetic-properties-of-word-embeddings-e918e3fda2ac
-
-        Vector is Normalized to length 1.0 so that trained NNs don't
-        get biased toward long names.
-
         """
-
-        embedding_dims = self.bw.shape[1]
+        embedding_dims = self.weights.shape[1]
         vec = np.array([0]*embedding_dims)
         for i in self.encode(phrase):
-            v = self.bw[i]
+            v = self.weights[i]
             vec = np.add(vec, v)
 
-        vec_norm = scipy.linalg.norm(vec)
-        if vec_norm > 0:
-            return np.divide(vec, vec_norm)
-        else:
-            return vec
+        return vec
+
+    def get_embedding_layer(self, input_length=None):
+        embedding_layer = tf.keras.layers.Embedding(
+            self.weights.shape[0],  # vocab size
+            self.weights.shape[1],  # embedding dims
+            embeddings_initializer=BertMatrixInitializer,
+            input_length=input_length)
+        return embedding_layer
 
 
 if __name__ == '__main__':
