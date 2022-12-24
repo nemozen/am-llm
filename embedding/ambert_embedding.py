@@ -5,8 +5,8 @@ import sys
 import tensorflow as tf
 import tensorflow_text as tf_text
 
-import amparser
-import bert_embedding
+from amparser import WORD_SEP
+from bert_embedding import UNK
 
 EMBEDDING_TSV="embedding_am.tsv"
 VOCAB_TSV="vocab_am.tsv"
@@ -22,12 +22,11 @@ def get_ambert_weights():
     """Load embedding (TSV of vectors) into a weight matrix.
     """
     logger.info("Loading weights from {} ...".format(EMBEDDING_TSV))
-    bert = bert_embedding.Bert()
     linenum=0
     W = None
     with open(EMBEDDING_TSV) as csvfile:
         for row in csv.reader(csvfile, delimiter='\t'):
-            v = map(float, row)
+            v = list(map(float, row))
             if W is None:
                 W = np.array([v])
             else:
@@ -70,13 +69,13 @@ class AmBert():
         for token in tokens.numpy()[0]:
             token = token.decode("utf-8")
             tid = self.vocab_dict.get(token,
-                                      self.vocab_dict.get(bert_embedding.UNK))
+                                      self.vocab_dict.get(UNK))
             ids.append(tid)
         return ids
 
     def encode(self, sentence):
         """sentence -> list of word ids"""
-        tokenizer = tf_text.RegexSplitter(amparser.WORD_SEP)
+        tokenizer = tf_text.RegexSplitter(WORD_SEP)
         tokens = tokenizer.split(sentence)
         ids = self.convert_tokens_to_ids(tokens)
         return ids
