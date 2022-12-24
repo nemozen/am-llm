@@ -8,11 +8,11 @@ import argparse
 import logging
 import numpy as np
 import os
-import scipy.linalg
 import sys
 import tensorflow as tf
 import tensorflow_hub as hub
 from official.nlp.bert import tokenization
+from scipy.spatial.distance import cosine
 
 # https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12
 BERT_BASE=os.path.join(os.getenv('HOME'), "bert_base")
@@ -70,6 +70,18 @@ class Bert():
         tokens = self.tokenizer.tokenize(sentence)
         ids = self.tokenizer.convert_tokens_to_ids(tokens)
         return ids
+
+
+    def decode(self, v):
+        """Decode one vector into one token, the most similar in BERT."""
+        scores_ids = list(map(lambda x: (cosine(x[0], v), x[1]),
+                              zip(self.weights,
+                                  range(self.weights.shape[0]))))
+        scores_ids.sort(key=lambda x: x[0], reverse=False)
+        best_ids = [s[1] for s in scores_ids]
+        best_words = self.tokenizer.convert_ids_to_tokens(best_ids)
+        logger.debug(best_words[:5])
+        return best_words[0]
 
 
     def phrase_embedding_vector(self, phrase):
