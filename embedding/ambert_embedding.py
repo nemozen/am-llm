@@ -23,21 +23,18 @@ def get_ambert_weights():
     """
     logger.info("Loading weights from {} ...".format(EMBEDDING_TSV))
     linenum=0
-    W = None
+    W = []
     with open(EMBEDDING_TSV) as csvfile:
         for row in csv.reader(csvfile, delimiter='\t'):
             v = list(map(float, row))
-            if W is None:
-                W = np.array([v])
-            else:
-                W = np.append(W, [v], axis=0)
-
+            W.append(v)
             linenum += 1
             if linenum % 10000 == 0:
                 logger.info("{} rows\r".format(linenum))
 
-    logger.info("AmBert weights matrix: {} {}".format(type(W), W.shape))
-    return W
+    weights = np.array(W)
+    logger.info("AmBert weights matrix: {}".format(weights.shape))
+    return weights
 
 
 class AmBertMatrixInitializer(tf.keras.initializers.Initializer):
