@@ -30,7 +30,7 @@ def get_ambert_weights():
             W.append(v)
             linenum += 1
             if linenum % 10000 == 0:
-                logger.info("{} rows\r".format(linenum))
+                logger.debug("{} rows\r".format(linenum))
 
     weights = np.array(W)
     logger.info("AmBert weights matrix: {}".format(weights.shape))
