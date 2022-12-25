@@ -10,6 +10,7 @@ from bert_embedding import UNK
 
 EMBEDDING_TSV="embedding_am.tsv"
 VOCAB_TSV="vocab_am.tsv"
+WEIGHTS_NPY="embedding_am.npy"
 
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,12 @@ logger.addHandler(handler)
 def get_ambert_weights():
     """Load embedding (TSV of vectors) into a weight matrix.
     """
+    try:
+        logger.info("Loading weights from {} ...".format(WEIGHTS_NPY))
+        weights = np.load(WEIGHTS_NPY)
+        return weights
+    except FileNotFoundError as e:
+        logger.debug(e)
     logger.info("Loading weights from {} ...".format(EMBEDDING_TSV))
     linenum=0
     W = []
@@ -34,6 +41,7 @@ def get_ambert_weights():
 
     weights = np.array(W)
     logger.info("AmBert weights matrix: {}".format(weights.shape))
+    np.save(WEIGHTS_NPY, weights)
     return weights
 
 
