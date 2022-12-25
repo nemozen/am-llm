@@ -88,9 +88,14 @@ class Bert():
         """Given a string, returns a vector of floats of size embeddding_dims.
 
         Uses bert embedding on the word pieces to make a single
-        vector, using simple vector addition, e.g. the vector for "foo
-        bar" is the vector for "foo" + vector for "bar".
+        vector.
+
+        Uses simple vector addition: the vector for "foo bar" is the
+        vector for "foo" + vector for "bar", which is ok in general
         https://medium.com/data-from-the-trenches/arithmetic-properties-of-word-embeddings-e918e3fda2ac
+        but not always e.g. "children's" ends up closer to "s" than
+        "children".
+        # TODO: improve with normalization
         """
         embedding_dims = self.weights.shape[1]
         vec = np.array([0]*embedding_dims)
