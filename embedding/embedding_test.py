@@ -46,7 +46,5 @@ def test_am_embedding_layer(s, expected_output):
     print("PASSED")
 
 test_am_embedding_layer("ሰላም ዓለም", "hello world")
-# TODO: poor normalization in phrase embedding: "children's" is closer
-# to "s" than "children",
-test_am_embedding_layer("የሕፃናትና የሴቶች መብቶች ጉዳይ የሁሉም ኃላፊነት ነው",
-                        "s women rights matter all responsibility it")
+test_am_embedding_layer("የ ሴቶችና የ ሕፃናት መብቶች ጉዳይ የሁሉም ኃላፊነት ነው",
+                        "of women of babies rights matter all responsibility it")
