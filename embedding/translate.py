@@ -45,6 +45,6 @@ if __name__ == "__main__":
             logger.info("Line {}, translating batch size {}".format(
                 linenum, sys.getsizeof(batch)))
             logger.debug(batch)
-            print(translate_text(batch, "am", "en"))
+            print(translate_text(batch, "am", "en").strip())
             batch = ''
     print(translate_text(batch, "am", "en"))
