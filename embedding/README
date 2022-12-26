@@ -4,6 +4,11 @@
 # create metadata dict: table of vocab words with encoding ids
 cat vocab_am.txt | ./bert_embedding.py --vocab > vocab_am.tsv
 
-# Translate words into english phrases, and use BERT to create new embedding
+# Translate words into english phrases
 cat vocab_am.txt | ./translate.py > vocab_en.txt
+
+# Use BERT to create AM-BERT embedding
 cat vocab_en.txt | ./bert_embedding.py --vectors > embedding_am.tsv
+
+# Test
+./embedding_test.py

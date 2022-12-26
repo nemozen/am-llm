@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import bert_embedding
 import ambert_embedding
 import tensorflow as tf
