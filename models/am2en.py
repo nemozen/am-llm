@@ -120,5 +120,3 @@ if __name__ == '__main__':
             logger.debug(res.shape)
             output = ' '.join(bert.decode(w) for w in res)
             print(output)
-
-
