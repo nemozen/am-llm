@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+import argparse
 import csv
 import logging
 import numpy as np
@@ -9,7 +11,7 @@ from embedding.bert_embedding import Bert
 
 
 BATCH_SIZE=1
-MAX_INPUT_WIDTH=10  # max length in words per row of input
+INPUT_WIDTH=10  # max length in words per row of input
 
 logger = logging.getLogger("am2en")
 logger.setLevel(logging.DEBUG)
@@ -30,7 +32,7 @@ def load_training_data(xfile, yfile):
         for row in infile:
             i += 1
             xr = ambert.encode(row)
-            if len(xr) > MAX_INPUT_WIDTH:
+            if len(xr) > INPUT_WIDTH:
                 continue
             rows_to_keep.append(i)
             x.append(xr)
@@ -82,25 +84,38 @@ def build_model(input_width, output_width):
     return model
 
 
-x, y = load_training_data(
-    "../../Amharic-English-Machine-Translation-Corpus/am_test.txt",
-    "../../Amharic-English-Machine-Translation-Corpus/en_test.txt")
-model = build_model(x.shape[2], y.shape[2])
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Amharic to English translator.")
+    parser.add_argument("--train", type=int, default=0,
+                        help="train model for this number of epochs")
+    parser.add_argument("--predict", action='store_true', help="translate from stdin")
+    args = parser.parse_args()
 
-try:
-    model.load_weights('{}.ckpt'.format("am2en"))
-    logger.info("Loaded model from {}.ckpt".format("am2en"))
-except tf.errors.NotFoundError as e:
-    model.compile(loss="cosine_similarity")
-    model.fit(x, y, batch_size=1, epochs=2, verbose=True)
-    model.save_weights('{}.ckpt'.format("am2en"))
+    x, y = load_training_data(
+        "../../Amharic-English-Machine-Translation-Corpus/am_test.txt",
+        "../../Amharic-English-Machine-Translation-Corpus/en_test.txt")
 
-for line in sys.stdin:
-    v = [[ambert.encode(line)]]
-    logger.debug("Input shape: {}".format(v))
-    res = model.predict(v)[0]
-    logger.debug(res.shape)
-    output = ' '.join(bert.decode(w) for w in res)
-    print(output)
+    model = build_model(x.shape[2], y.shape[2])
+
+    try:
+        model.load_weights('{}.ckpt'.format("am2en"))
+        logger.info("Loaded model from {}.ckpt".format("am2en"))
+    except tf.errors.NotFoundError as e:
+        logger.info(e)
+
+    if args.train:
+        model.compile(loss="cosine_similarity")
+        model.fit(x, y, batch_size=1, epochs=args.train, verbose=True)
+        model.save_weights('{}.ckpt'.format("am2en"))
+
+    if args.predict:
+        for line in sys.stdin:
+            v = ambert.encode(line)
+            v += [0]*(INPUT_WIDTH-len(v))
+            logger.debug("Encoded input: {}".format(v))
+            res = model.predict([[v]])[0]
+            logger.debug(res.shape)
+            output = ' '.join(bert.decode(w) for w in res)
+            print(output)
 
 
