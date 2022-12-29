@@ -12,6 +12,7 @@ from embedding.bert_embedding import Bert
 
 BATCH_SIZE=1
 INPUT_WIDTH=10  # max length in words per row of input
+MODEL_NAME="am2en_idinit"
 
 logger = logging.getLogger("am2en")
 logger.setLevel(logging.DEBUG)
@@ -76,7 +77,9 @@ def build_model(input_width, output_width):
     flatten_layer = tf.keras.layers.Reshape(
         (1, embedding_dims*input_width))(ambert_layer)
     dense_layer = tf.keras.layers.Dense(
-        embedding_dims*output_width, activation='relu')(flatten_layer)
+        embedding_dims*output_width,
+        activation='relu',
+        kernel_initializer='identity')(flatten_layer)
     output_layer = tf.keras.layers.Reshape(
         (output_width, embedding_dims))(dense_layer)
     model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
@@ -98,7 +101,7 @@ if __name__ == '__main__':
     model = build_model(x.shape[2], y.shape[2])
 
     try:
-        model.load_weights('{}.ckpt'.format("am2en"))
+        model.load_weights('{}.ckpt'.format(MODEL_NAME))
         logger.info("Loaded model from {}.ckpt".format("am2en"))
     except tf.errors.NotFoundError as e:
         logger.info(e)
@@ -106,7 +109,7 @@ if __name__ == '__main__':
     if args.train:
         model.compile(loss="cosine_similarity")
         model.fit(x, y, batch_size=1, epochs=args.train, verbose=True)
-        model.save_weights('{}.ckpt'.format("am2en"))
+        model.save_weights('{}.ckpt'.format(MODEL_NAME))
 
     if args.predict:
         for line in sys.stdin:
