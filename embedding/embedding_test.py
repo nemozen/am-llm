@@ -1,10 +1,10 @@
 #!/usr/bin/python3
-import bert_embedding
-import ambert_embedding
+from embedding.bert_embedding import Bert
+from embedding.ambert_embedding import AmBert
 import tensorflow as tf
 
 
-bert = bert_embedding.Bert()
+bert = Bert()
 
 def test_embedding_layer(s):
     """Output out of bert embedding layer should be the vectors in the
@@ -27,7 +27,7 @@ def test_embedding_layer(s):
 test_embedding_layer("this is a sentence with seven words")
 
 
-ambert = ambert_embedding.AmBert()
+ambert = AmBert()
 
 def test_am_embedding_layer(s, expected_output):
     """Output of ambert embedding layer should be the vectors representing
@@ -49,3 +49,7 @@ def test_am_embedding_layer(s, expected_output):
 test_am_embedding_layer("ሰላም ዓለም", "hello world")
 test_am_embedding_layer("የ ሴቶችና የ ሕፃናት መብቶች ጉዳይ የሁሉም ኃላፊነት ነው",
                         "of women of babies rights matter all responsibility it")
+test_am_embedding_layer("ቢግ ማክ በኣሁኑ ዘመን በአለም ዓቀፍ ደረጃ ከፍተኛ ተዎዳጅነትን",
+                        "big mac currently era the hug level high friendship")
+test_am_embedding_layer("ስለ ኢትዮጵያ ረሃብና ረሃብተኞች ግን ወሬው ራሱ ሲነሣ ኃጢአት ነው።",
+                        "in ethiopia hunger hungry but story himself he sin it")
