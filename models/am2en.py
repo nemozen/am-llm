@@ -14,6 +14,7 @@ BATCH_SIZE=1
 INPUT_WIDTH=10  # max length in tokens per row of input
 OUTPUT_WIDTH=32  # max length in tokens per row of output
 MODEL_NAME="am2en_idinit"
+OUTPUT_TOKENS_TO_FILTER=["[PAD]"]
 
 logger = logging.getLogger("am2en")
 logger.setLevel(logging.DEBUG)
@@ -113,9 +114,16 @@ if __name__ == '__main__':
     if args.predict:
         for line in sys.stdin:
             v = ambert.encode(line)
-            v += [0]*(INPUT_WIDTH-len(v))
-            logger.debug("Encoded input: {}".format(v))
-            res = model.predict([[v]])[0]
-            logger.debug(res.shape)
-            output = ' '.join(bert.decode(w) for w in res)
-            print(output)
+            # break line up in chunks of size at most INPUT_WIDTH
+            for i in range(1+int(len(v)/INPUT_WIDTH)):
+                x = v[i*INPUT_WIDTH:(i+1)*INPUT_WIDTH]
+                # pad to length INPUT_WIDTH
+                x += [0]*(INPUT_WIDTH-len(x))
+                logger.debug("Encoded input: {}".format(x))
+                res = model.predict([[x]])[0]
+                logger.debug(res.shape)
+                output = ' '.join(
+                    filter(lambda token: token not in OUTPUT_TOKENS_TO_FILTER,
+                           (bert.decode(w) for w in res)))
+                print(output, end=' ')  # Line fragment
+            print('')  # EOL
