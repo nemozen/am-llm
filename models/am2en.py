@@ -11,7 +11,8 @@ from embedding.bert_embedding import Bert
 
 
 BATCH_SIZE=1
-INPUT_WIDTH=10  # max length in words per row of input
+INPUT_WIDTH=10  # max length in tokens per row of input
+OUTPUT_WIDTH=32  # max length in tokens per row of output
 MODEL_NAME="am2en_idinit"
 
 logger = logging.getLogger("am2en")
@@ -28,8 +29,7 @@ def load_training_data(xfile, yfile):
     rows_to_keep = []
     with open(xfile) as infile:
         x = []
-        xlen = 0
-        i = 0
+        i = -1
         for row in infile:
             i += 1
             xr = ambert.encode(row)
@@ -37,26 +37,26 @@ def load_training_data(xfile, yfile):
                 continue
             rows_to_keep.append(i)
             x.append(xr)
-            xlen = max(len(xr), xlen)
 
     with open(yfile) as infile:
         y = []
-        ylen = 0
-        i = 0
+        i = -1
         for row in infile:
             i += 1
             if i not in rows_to_keep:
                 continue
             yr = bert.encode(row)
+            if len(yr) > OUTPUT_WIDTH:
+                del x[i]
+                continue
             y.append(yr)
-            ylen = max(len(yr), ylen)
 
     # make rectangular
     for row in x:
-        row += [0]*(xlen-len(row))
+        row += [0]*(INPUT_WIDTH-len(row))
 
     for row in y:
-        row += [0]*(ylen-len(row))
+        row += [0]*(OUTPUT_WIDTH-len(row))
 
     # batch of size 1
     for i in range(len(x)):
@@ -94,20 +94,19 @@ if __name__ == '__main__':
     parser.add_argument("--predict", action='store_true', help="translate from stdin")
     args = parser.parse_args()
 
-    x, y = load_training_data(
-        "../../Amharic-English-Machine-Translation-Corpus/am_test.txt",
-        "../../Amharic-English-Machine-Translation-Corpus/en_test.txt")
-
-    model = build_model(x.shape[2], y.shape[2])
+    model = build_model(INPUT_WIDTH, OUTPUT_WIDTH)
 
     try:
         model.load_weights('{}.ckpt'.format(MODEL_NAME))
-        logger.info("Loaded model from {}.ckpt".format("am2en"))
+        logger.info("Loaded model from {}.ckpt".format(MODEL_NAME))
     except tf.errors.NotFoundError as e:
         logger.info(e)
 
     if args.train:
         model.compile(loss="cosine_similarity")
+        x, y = load_training_data(
+            "../../Amharic-English-Machine-Translation-Corpus/am_test.txt",
+            "../../Amharic-English-Machine-Translation-Corpus/en_test.txt")
         model.fit(x, y, batch_size=1, epochs=args.train, verbose=True)
         model.save_weights('{}.ckpt'.format(MODEL_NAME))
 
