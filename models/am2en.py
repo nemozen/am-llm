@@ -87,7 +87,7 @@ def build_model(input_width, output_width):
     output_layer = tf.keras.layers.Reshape(
         (output_width, embedding_dims))(dense_layer)
     model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
-    tf.keras.utils.plot_model(model, to_file='model.png', show_shapes=True)
+    # tf.keras.utils.plot_model(model, to_file='model.png', show_shapes=True)
     return model
 
 
@@ -109,8 +109,8 @@ if __name__ == '__main__':
     if args.train:
         model.compile(loss="cosine_similarity")
         x, y = load_training_data(
-            "../../Amharic-English-Machine-Translation-Corpus/am_test.txt",
-            "../../Amharic-English-Machine-Translation-Corpus/en_test.txt")
+            "../../Amharic-English-Machine-Translation-Corpus/new-am.txt",
+            "../../Amharic-English-Machine-Translation-Corpus/new-en.txt")
         model.fit(x, y, batch_size=1, epochs=args.train, verbose=True)
         model.save_weights('{}.ckpt'.format(MODEL_NAME))
 
