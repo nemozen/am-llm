@@ -42,13 +42,16 @@ def load_training_data(xfile, yfile):
     with open(yfile) as infile:
         y = []
         i = -1
+        xi = -1
         for row in infile:
             i += 1
             if i not in rows_to_keep:
                 continue
+            xi += 1
             yr = bert.encode(row)
             if len(yr) > OUTPUT_WIDTH:
-                del x[i]
+                del x[xi]
+                xi -= 1
                 continue
             y.append(yr)
 
