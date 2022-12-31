@@ -9,3 +9,5 @@ embedding bootstrapped off
 [am2en](models/am2en.py) is a basic example of a model using this
 embedding for an amharic to english translation application.
 
+To execute the scripts, add this directory (/path/to/am-llm) to your PYTHONPATH
+environment variable.

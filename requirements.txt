@@ -1,4 +1,5 @@
 scipy
 tensorflow
 tensorflow_hub
+tensorflow_text
 tf-models-official==2.3.0
