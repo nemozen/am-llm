@@ -11,7 +11,9 @@ cd am-llm/models
 ./am2en.py --train 32
 ```
 
-Model layers look like
+Model layers look like this:
+
+
 ![](am2en.png)
 
 
