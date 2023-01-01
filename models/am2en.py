@@ -76,6 +76,13 @@ def load_training_data(xfile, yfile):
 
 
 def build_model(input_width, output_width):
+    '''Four layers: ambert embedding, flattening, dense layer, and output
+    layer.  The AMBERT embedding is designed to be semantically
+    related to the BERT english embedding used to decode the output,
+    i.e. vectors in the input embedding will be close to the vectors
+    with similar meaning in the output embedding. So we initialize the
+    dense layer in the middle with the identity kernel.
+    '''
     input_layer =tf.keras.Input(batch_size=BATCH_SIZE, shape=(1,None))
     ambert_layer = ambert.get_embedding_layer(input_width)(input_layer)
     flatten_layer = tf.keras.layers.Reshape(
