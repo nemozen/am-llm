@@ -2,9 +2,10 @@
 
 Download text corpora into  `../../am_corpora`. We use:
 
-. Amharic wikipedia corpus, [amwiki](https://archive.org/download/amwiki-20190101/amwiki-20190101-pages-meta-current.xml.bz2)
+- Amharic wikipedia corpus, [amwiki](https://dumps.wikimedia.org/amwiki). We used
+[amwiki-20190101](https://archive.org/download/amwiki-20190101/amwiki-20190101-pages-meta-current.xml.bz2) but if starting from scratch, you might want the [latest](https://dumps.wikimedia.org/amwiki/latest/amwiki-latest-pages-meta-current.xml.bz2)
 
-. Ethiopian News Headlines corpus, [enh-corpus](https://github.com/geezorg/enh-corpus/releases/)
+- Ethiopian News Headlines corpus, [enh-corpus](https://github.com/geezorg/enh-corpus/releases/)
 
 Another source, which is not used in our examples currently, is [CACO](https://www.findke.ovgu.de/findke/en/Research/Data+Sets/Contemporary+Amharic+Corpus+(CACO)-p-1142.html) which can be downloaded from [here](http://wwwiti.cs.uni-magdeburg.de/iti_dke/Datasets/Contemporary_Amharic_Corpus_(CACO)-version_1.1.zip).
 
