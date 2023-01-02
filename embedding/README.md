@@ -1,3 +1,14 @@
+# Download BERT
+
+We install it in ~/bert_base. If you chose a different location, update BERT_BASE in [[bert_embedding.py]]
+
+```
+mkdir ~/bert_base
+cd ~/bert_base
+wget https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4?tf-hub-format=compressed -O bert_en_uncased_L-12_H-768_A-12.tgz
+tar -xzvf bert_en_uncased_L-12_H-768_A-12.tgz
+```
+
 # Download text corpora
 
 Download text corpora into  `../../am_corpora`. We use:

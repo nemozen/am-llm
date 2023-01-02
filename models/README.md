@@ -1,10 +1,12 @@
-# Get parallel text for training
+# am2en
+
+## Get parallel text for training
 ```
 cd ../..
 git clone https://github.com/MarsPanther/Amharic-English-Machine-Translation-Corpus
 ```
 
-# Build the translation model and train it with parallel text
+## Build the translation model and train it with parallel text
 
 ```
 cd am-llm/models
@@ -17,7 +19,7 @@ Model layers look like this:
 ![](am2en.png)
 
 
-# Predict, i.e. translate from amharic on stdin to english on stdout
+## Translate from amharic on stdin to english on stdout
 ```
 echo "ሰላም ዓለም" | ./am2en.py --predict
 ```
