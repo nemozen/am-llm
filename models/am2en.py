@@ -62,7 +62,7 @@ def load_training_data(xfile, yfile):
     for row in y:
         row += [0]*(OUTPUT_WIDTH-len(row))
 
-    for i in range(len(y)):    
+    for i in range(len(y)):
         y[i] = bert.get_embedding_layer()(tf.convert_to_tensor(y[i]))
 
     # truncate to multiple of batch size
@@ -95,7 +95,7 @@ def build_model(input_width, output_width):
     output_layer = tf.keras.layers.Reshape(
         (output_width, embedding_dims))(dense_layer)
     model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
-    # tf.keras.utils.plot_model(model, to_file='model.png', show_shapes=True)
+    # tf.keras.utils.plot_model(model, to_file='{}.png'.format(MODEL_NAME), show_shapes=True)
     return model
 
 
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     parser.add_argument("--predict", action='store_true', help="translate from stdin")
     args = parser.parse_args()
 
-    strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
+    strategy = tf.distribute.MultiWorkerMirroredStrategy()
     with strategy.scope():
 
         model = build_model(INPUT_WIDTH, OUTPUT_WIDTH)
@@ -120,8 +120,8 @@ if __name__ == '__main__':
         if args.train:
             model.compile(loss="cosine_similarity")
             x, y = load_training_data(
-                    "../../Amharic-English-Machine-Translation-Corpus/am-test.txt",
-                    "../../Amharic-English-Machine-Translation-Corpus/en-test.txt")
+                    "../../Amharic-English-Machine-Translation-Corpus/new-am.txt",
+                    "../../Amharic-English-Machine-Translation-Corpus/new-en.txt")
             model.fit(x, y, batch_size=BATCH_SIZE, epochs=args.train, verbose=True)
             model.save_weights('{}.ckpt'.format(MODEL_NAME))
 
@@ -133,12 +133,13 @@ if __name__ == '__main__':
                     x = v[i*INPUT_WIDTH:(i+1)*INPUT_WIDTH]
                     # pad to length INPUT_WIDTH
                     x += [0]*(INPUT_WIDTH-len(x))
-                    x = tf.convert_to_tensor(x, dtype=tf.float32)
-                    logger.debug("Encoded input: {}".format(x))
+                    x = tf.convert_to_tensor([x], dtype=tf.float32)
+                    logger.debug("Encoded input: {} {}".format(x.shape, x))
                     res = model(x)
-                    logger.debug(res.shape)
-                    output = ' '.join(
-                        filter(lambda token: token not in OUTPUT_TOKENS_TO_FILTER,
-                           (bert.decode(w) for w in res)))
-                    print(output, end=' ')  # Line fragment
+                    logger.debug("Result shape: {}".format(res.shape))
+                    for r in res:
+                        output = ' '.join(
+                            filter(lambda token: token not in OUTPUT_TOKENS_TO_FILTER,
+                                   (bert.decode(w) for w in r)))
+                        print(output, end=' ')  # Line fragment
                 print('')  # EOL
