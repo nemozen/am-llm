@@ -10,7 +10,7 @@ from embedding.ambert_embedding import AmBert
 from embedding.bert_embedding import Bert
 
 
-BATCH_SIZE=1
+BATCH_SIZE=4
 INPUT_WIDTH=10  # max length in tokens per row of input
 OUTPUT_WIDTH=32  # max length in tokens per row of output
 MODEL_NAME="am2en_idinit"
@@ -62,17 +62,22 @@ def load_training_data(xfile, yfile):
     for row in y:
         row += [0]*(OUTPUT_WIDTH-len(row))
 
-    # batch of size 1
-    for i in range(len(x)):
-        x[i] = [x[i]]
+    # batches of size BATCH_SIZE
+    X = []
+    for i in range(0,len(x), BATCH_SIZE):
+        X.append([x[k] for k in range(i,min(i+BATCH_SIZE, len(x)))])
 
-    for i in range(len(y)):
-        y[i] = [bert.get_embedding_layer()(tf.convert_to_tensor(y[i]))]
+    del x
 
-    x = tf.convert_to_tensor(x, dtype=tf.float32)
-    y = tf.convert_to_tensor(y, dtype=tf.float32)
-    logger.debug("Input shape: {}\nOutput shape: {}".format(x.shape, y.shape))
-    return x,y
+    Y = []
+    for i in range(0,len(y), BATCH_SIZE):
+        Y.append([bert.get_embedding_layer()(tf.convert_to_tensor(y[k]))
+            for k in range(i, min(i+BATCH_SIZE, len(y)))])
+    del y
+    X = tf.convert_to_tensor(X, dtype=tf.float32)
+    Y = tf.convert_to_tensor(Y, dtype=tf.float32)
+    logger.debug("Input shape: {}\nOutput shape: {}".format(X.shape, Y.shape))
+    return X,Y
 
 
 def build_model(input_width, output_width):
@@ -83,7 +88,7 @@ def build_model(input_width, output_width):
     with similar meaning in the output embedding. So we initialize the
     dense layer in the middle with the identity kernel.
     '''
-    input_layer =tf.keras.Input(batch_size=BATCH_SIZE, shape=(1,None))
+    input_layer =tf.keras.Input(batch_size=BATCH_SIZE, shape=(input_width,))
     ambert_layer = ambert.get_embedding_layer(input_width)(input_layer)
     flatten_layer = tf.keras.layers.Reshape(
         (1, embedding_dims*input_width))(ambert_layer)
@@ -105,21 +110,24 @@ if __name__ == '__main__':
     parser.add_argument("--predict", action='store_true', help="translate from stdin")
     args = parser.parse_args()
 
-    model = build_model(INPUT_WIDTH, OUTPUT_WIDTH)
+    strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
+    with strategy.scope():
 
-    try:
-        model.load_weights('{}.ckpt'.format(MODEL_NAME))
-        logger.info("Loaded model from {}.ckpt".format(MODEL_NAME))
-    except tf.errors.NotFoundError as e:
-        logger.info(e)
+        model = build_model(INPUT_WIDTH, OUTPUT_WIDTH)
 
-    if args.train:
-        model.compile(loss="cosine_similarity")
-        x, y = load_training_data(
-            "../../Amharic-English-Machine-Translation-Corpus/new-am.txt",
-            "../../Amharic-English-Machine-Translation-Corpus/new-en.txt")
-        model.fit(x, y, batch_size=1, epochs=args.train, verbose=True)
-        model.save_weights('{}.ckpt'.format(MODEL_NAME))
+        try:
+            model.load_weights('{}.ckpt'.format(MODEL_NAME))
+            logger.info("Loaded model from {}.ckpt".format(MODEL_NAME))
+        except tf.errors.NotFoundError as e:
+            logger.info(e)
+
+        if args.train:
+            model.compile(loss="cosine_similarity")
+            x, y = load_training_data(
+                    "../../Amharic-English-Machine-Translation-Corpus/am-test.txt",
+                    "../../Amharic-English-Machine-Translation-Corpus/en-test.txt")
+            model.fit(x, y, batch_size=BATCH_SIZE, epochs=args.train, verbose=True)
+            model.save_weights('{}.ckpt'.format(MODEL_NAME))
 
     if args.predict:
         for line in sys.stdin:
