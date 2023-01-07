@@ -62,22 +62,18 @@ def load_training_data(xfile, yfile):
     for row in y:
         row += [0]*(OUTPUT_WIDTH-len(row))
 
-    # batches of size BATCH_SIZE
-    X = []
-    for i in range(0,len(x), BATCH_SIZE):
-        X.append([x[k] for k in range(i,min(i+BATCH_SIZE, len(x)))])
+    for i in range(len(y)):    
+        y[i] = bert.get_embedding_layer()(tf.convert_to_tensor(y[i]))
 
-    del x
+    # truncate to multiple of batch size
+    x = x[:(len(x) - len(x) % BATCH_SIZE)]
+    y = y[:(len(y) - len(y) % BATCH_SIZE)]
 
-    Y = []
-    for i in range(0,len(y), BATCH_SIZE):
-        Y.append([bert.get_embedding_layer()(tf.convert_to_tensor(y[k]))
-            for k in range(i, min(i+BATCH_SIZE, len(y)))])
-    del y
-    X = tf.convert_to_tensor(X, dtype=tf.float32)
-    Y = tf.convert_to_tensor(Y, dtype=tf.float32)
-    logger.debug("Input shape: {}\nOutput shape: {}".format(X.shape, Y.shape))
-    return X,Y
+    x = tf.convert_to_tensor(x, dtype=tf.float32)
+    y = tf.convert_to_tensor(y, dtype=tf.float32)
+    logger.debug("Input shape: {}\nOutput shape: {}".format(
+        x.shape, y.shape))
+    return x,y
 
 
 def build_model(input_width, output_width):
@@ -129,19 +125,20 @@ if __name__ == '__main__':
             model.fit(x, y, batch_size=BATCH_SIZE, epochs=args.train, verbose=True)
             model.save_weights('{}.ckpt'.format(MODEL_NAME))
 
-    if args.predict:
-        for line in sys.stdin:
-            v = ambert.encode(line)
-            # break line up in chunks of size at most INPUT_WIDTH
-            for i in range(1+int(len(v)/INPUT_WIDTH)):
-                x = v[i*INPUT_WIDTH:(i+1)*INPUT_WIDTH]
-                # pad to length INPUT_WIDTH
-                x += [0]*(INPUT_WIDTH-len(x))
-                logger.debug("Encoded input: {}".format(x))
-                res = model.predict([[x]])[0]
-                logger.debug(res.shape)
-                output = ' '.join(
-                    filter(lambda token: token not in OUTPUT_TOKENS_TO_FILTER,
+        if args.predict:
+            for line in sys.stdin:
+                v = ambert.encode(line)
+                # break line up in chunks of size at most INPUT_WIDTH
+                for i in range(1+int(len(v)/INPUT_WIDTH)):
+                    x = v[i*INPUT_WIDTH:(i+1)*INPUT_WIDTH]
+                    # pad to length INPUT_WIDTH
+                    x += [0]*(INPUT_WIDTH-len(x))
+                    x = tf.convert_to_tensor(x, dtype=tf.float32)
+                    logger.debug("Encoded input: {}".format(x))
+                    res = model(x)
+                    logger.debug(res.shape)
+                    output = ' '.join(
+                        filter(lambda token: token not in OUTPUT_TOKENS_TO_FILTER,
                            (bert.decode(w) for w in res)))
-                print(output, end=' ')  # Line fragment
-            print('')  # EOL
+                    print(output, end=' ')  # Line fragment
+                print('')  # EOL
