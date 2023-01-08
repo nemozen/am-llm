@@ -43,13 +43,13 @@ cat vocab_am.txt | ./bert_embedding.py --vocab > vocab_am.tsv
 cat vocab_en.txt | ./bert_embedding.py --vectors > embedding_am.tsv
 ```
 
-# Load and test Bert and AmBert classes
+## Test Bert and AmBert classes
 ```
 ./embedding_test.py
 ```
 
-# Visuzalize
+## Visualize
 
-Metadata and vector TSV files can be loaded in [Embedding Projector](https://projector.tensorflow.org/)
+Metadata and vector files (vocab_am.tsv and embedding_am.tsv as generated above) can be loaded in [Embedding Projector](https://projector.tensorflow.org/)
 
 ![](embedding_projector_viz.png)
