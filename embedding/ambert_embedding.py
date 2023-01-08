@@ -1,3 +1,8 @@
+'''AmBert class to facilitate using embedding generated in
+bert_embedding. Requires metadata dictionary vocab_am.tsv and
+embedding vectors embedding_am.tsv as output by bert_embedding.
+
+'''
 import csv
 import logging
 import numpy as np
@@ -20,7 +25,7 @@ handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
 
 
-def get_ambert_weights():
+def _get_ambert_weights():
     """Load embedding (TSV of vectors) into a weight matrix.
     """
     try:
@@ -63,7 +68,7 @@ class AmBertMatrixInitializer(tf.keras.initializers.Initializer):
 class AmBert():
 
     def __init__(self):
-        self.weights = get_ambert_weights()
+        self.weights = _get_ambert_weights()
         self.vocab_dict = {}
         with open(VOCAB_TSV) as csvfile:
             reader = csv.DictReader(csvfile, delimiter='\t')
