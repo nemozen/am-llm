@@ -1,8 +1,8 @@
 #!/usr/bin/python3
-'''Utility to bootstrap different embeddings from BERT. The new vocab
+'''
+Utility to bootstrap different embeddings from BERT. The new vocab
 is fed via stdin and we output vectors and/or a vocab dictionary with
 encoding ids stdout.
-
 '''
 import argparse
 import logging
@@ -15,7 +15,7 @@ from official.nlp.bert import tokenization
 from scipy.spatial.distance import cosine
 
 # https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12
-BERT_BASE=os.path.join(os.getenv('HOME'), "bert_base")
+BERT_BASE=os.getenv('BERT_BASE')
 
 # Token and id for unknown word in BERT embedding. In the output
 # embeddings, we'll use the same token and give it id 0 (first row).

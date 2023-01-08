@@ -13,5 +13,19 @@ applications.
 [am2en](models/am2en.py) is a basic example of a model using this
 embedding for an amharic to english translation application.
 
-To execute the scripts, add this directory (/path/to/am-llm) to your PYTHONPATH
-environment variable.
+## Setup
+
+`BERT_BASE` environment variable, which is used in
+[[embedding/bert_embedding.py]], should point to the BERT installation directory.
+
+`AM_LLM` environment variable, which is used in [[embedding/ambert_embedding.py]],
+should point to the am-llm repository's directory i.e. this directory.
+
+Add `$AM_LLM` to your `PYTHONPATH` environment variable.
+
+E.g.
+```
+export BERT_BASE=~/bert_base
+export AM_LLM=~/src/am-llm
+export PYTHONPATH=$AM_LLM:$PYTHONPATH
+```

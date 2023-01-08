@@ -9,9 +9,9 @@ import tensorflow_text as tf_text
 from embedding.amparser import WORD_SEP
 from embedding.bert_embedding import UNK
 
-EMBEDDING_TSV=os.path.join(os.getenv('HOME'), "am-llm/embedding/embedding_am.tsv")
-VOCAB_TSV=os.path.join(os.getenv('HOME'), "am-llm/embedding/vocab_am.tsv")
-WEIGHTS_NPY=os.path.join(os.getenv('HOME'), "am-llm/embedding/embedding_am.npy")
+EMBEDDING_TSV=os.path.join(os.getenv('AM_LLM'), "embedding/embedding_am.tsv")
+VOCAB_TSV=os.path.join(os.getenv('AM_LLM'), "embedding/vocab_am.tsv")
+WEIGHTS_NPY=os.path.join(os.getenv('AM_LLM'), "embedding/embedding_am.npy")
 
 
 logger = logging.getLogger(__name__)
