@@ -10,7 +10,7 @@ from embedding.ambert_embedding import AmBert
 from embedding.bert_embedding import Bert
 
 
-BATCH_SIZE=4
+BATCH_SIZE=64
 INPUT_WIDTH=10  # max length in tokens per row of input
 OUTPUT_WIDTH=32  # max length in tokens per row of output
 MODEL_NAME="am2en_idp"
