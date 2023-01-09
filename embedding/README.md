@@ -20,17 +20,16 @@ Download text corpora into  `../../am_corpora`. We use:
 
 Another source, which is not used in our examples currently, is [CACO](https://www.findke.ovgu.de/findke/en/Research/Data+Sets/Contemporary+Amharic+Corpus+(CACO)-p-1142.html) which can be downloaded from [here](http://wwwiti.cs.uni-magdeburg.de/iti_dke/Datasets/Contemporary_Amharic_Corpus_(CACO)-version_1.1.zip).
 
-## Extract vocabulary from the XML and HTML files in the corpora
+## Build vocabulary
+
+Extract vocabulary from the XML and HTML files in the corpora, then translate words into english phrases.
+
 ```
 ./amparser.py "../../am_corpora" | sort - > vocab_am.txt
-```
-This output is included in this repo, [vocab_am.txt](vocab_am.txt), made by running amparser.py on enh-corpus and amwiki combined.
-
-## Translate words into english phrases
-```
 cat vocab_am.txt | ./translate.py > vocab_en.txt
 ```
-This output is included in this repo, [vocab_en.txt](vocab_en.txt).
+
+The outputs are included in this repo: [vocab_am.txt](vocab_am.txt), made by running amparser.py on enh-corpus and amwiki combined; and [vocab_en.txt](vocab_en.txt), made by running the vocabulary through Google translate.
 
 # Generate embedding files
 

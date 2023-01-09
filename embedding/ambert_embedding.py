@@ -35,6 +35,7 @@ def _get_ambert_weights():
         return weights
     except FileNotFoundError as e:
         logger.debug(e)
+    logger.warn("Building embedding weights matrix, first time is slow...")
     logger.info("Loading weights from {} ...".format(EMBEDDING_TSV))
     linenum=0
     W = []
@@ -85,11 +86,13 @@ class AmBert():
             ids.append(tid)
         return ids
 
-    def encode(self, sentence):
-        """sentence -> list of word ids"""
+    def encode(self, sentence, min_length=None):
+        """sentence -> list of word ids. Pad to min_length if specified."""
         tokenizer = tf_text.RegexSplitter(WORD_SEP)
         tokens = tokenizer.split(sentence)
         ids = self.convert_tokens_to_ids(tokens)
+        if min_length:
+            ids += [0]*(min_length-len(ids))
         return ids
 
     def get_embedding_layer(self, input_length=None):

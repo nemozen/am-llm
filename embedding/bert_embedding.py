@@ -17,11 +17,12 @@ from scipy.spatial.distance import cosine
 # https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12
 BERT_BASE=os.getenv('BERT_BASE')
 
-# Token and id for unknown word in BERT embedding. In the output
-# embeddings, we'll use the same token and give it id 0 (first row).
+# Tokens and ids for padding and unknown word in BERT embedding. In the
+# output embeddings, we'll use the same tokens and give them id 0 and 1.
+PAD="[PAD]"
+PAD_ID=0
 UNK="[UNK]"
 UNK_ID=100
-
 
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stderr)
@@ -123,7 +124,8 @@ if __name__ == '__main__':
 
     if args.vectors:
         bert = Bert()
-        # first row is UNK
+        # first row is PAD, second is UNK
+        print('\t'.join(str(x) for x in bert.weights[PAD_ID]))
         print('\t'.join(str(x) for x in bert.weights[UNK_ID]))
         for line in sys.stdin:
             row = bert.phrase_embedding_vector(line.strip())
@@ -132,7 +134,9 @@ if __name__ == '__main__':
     if args.vocab:
         print("word\tid")
         wid = 0
-        # first row is UNK
+        # first row is PAD, second is UNK
+        print('{}\t{}'.format(PAD, wid))
+        wid += 1
         print('{}\t{}'.format(UNK, wid))
         for line in sys.stdin:
             wid += 1

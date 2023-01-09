@@ -13,7 +13,7 @@ from embedding.bert_embedding import Bert
 BATCH_SIZE=4
 INPUT_WIDTH=10  # max length in tokens per row of input
 OUTPUT_WIDTH=32  # max length in tokens per row of output
-MODEL_NAME="am2en_idinit"
+MODEL_NAME="am2en_idp"
 OUTPUT_TOKENS_TO_FILTER=["[PAD]"]
 
 logger = logging.getLogger("am2en")

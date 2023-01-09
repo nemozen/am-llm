@@ -29,7 +29,7 @@ test_embedding_layer("this is a sentence with seven words")
 
 ambert = AmBert()
 
-def test_am_embedding_layer(s, expected_output):
+def test_am_embedding_layer(s, expected_output, length=None):
     """Output of ambert embedding layer should be the vectors representing
     the meaning. When decoded in bert it should give english tokens
     with meaning close to the input, word by word. But of course,
@@ -37,7 +37,7 @@ def test_am_embedding_layer(s, expected_output):
 
     """
     print(s)
-    v = ambert.encode(s)
+    v = ambert.encode(s, length)
     print(v)
     res = ambert.get_embedding_layer(len(v))(tf.convert_to_tensor([v]))
     assert res.shape == (1,len(v), ambert.weights.shape[1])
@@ -49,5 +49,5 @@ def test_am_embedding_layer(s, expected_output):
 
 test_am_embedding_layer("ሰላም ዓለም", "hello world")
 test_am_embedding_layer("የሴቶች እና የሕፃናት መብቶች", "women and children rights")
-test_am_embedding_layer("ቢግ ማክ", "big mac")
+test_am_embedding_layer("ቢግ ማክ", "big mac [PAD] [PAD]", 4)
 test_am_embedding_layer("የኢትዮጵያ ቋንቋ", "ethiopia language")
