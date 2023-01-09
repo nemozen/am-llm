@@ -100,5 +100,6 @@ class AmBert():
             self.weights.shape[0],  # vocab size
             self.weights.shape[1],  # embedding dims
             embeddings_initializer=AmBertMatrixInitializer(self.weights),
-            input_length=input_length)
+            input_length=input_length,
+            trainable = False)
         return embedding_layer
