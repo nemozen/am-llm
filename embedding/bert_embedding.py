@@ -26,8 +26,8 @@ UNK_ID=100
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
-# Adjust logging level for this module by uncommenting the following:
-# logger.setLevel(logging.INFO)
+# Adjust logging level for this module
+# logger.setLevel(logging.DEBUG)
 
 
 def get_tokenizer():
@@ -81,7 +81,7 @@ class Bert():
         scores_ids.sort(key=lambda x: x[0], reverse=False)
         best_ids = [s[1] for s in scores_ids]
         best_words = self.tokenizer.convert_ids_to_tokens(best_ids)
-        logger.debug(best_words[:5])
+        logger.debug("decoded: {} {}".format(best_words[:5], scores_ids[:5]))
         return best_words[0]
 
 

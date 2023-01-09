@@ -22,7 +22,7 @@ WEIGHTS_NPY=os.path.join(os.getenv('AM_LLM'), "embedding/embedding_am.npy")
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
-# Adjust logging level for this module by uncommenting the following:
+# Adjust logging level for this module
 # logger.setLevel(logging.INFO)
 
 

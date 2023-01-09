@@ -19,7 +19,7 @@ OUTPUT_TOKENS_TO_FILTER=["[PAD]"]
 logger = logging.getLogger("am2en")
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
-# Adjust logging level for this module by uncommenting the following:
+# Adjust logging level for this module
 # logger.setLevel(logging.INFO)
 
 
@@ -29,6 +29,7 @@ embedding_dims = bert.weights.shape[1]
 
 
 def load_training_data(xfile, yfile):
+    logger.info("Loading training data...")
     rows_to_keep = []
     with open(xfile) as infile:
         x = []
@@ -73,7 +74,7 @@ def load_training_data(xfile, yfile):
 
     x = tf.convert_to_tensor(x, dtype=tf.float32)
     y = tf.convert_to_tensor(y, dtype=tf.float32)
-    logger.debug("Input shape: {}\nOutput shape: {}".format(
+    logger.info("Input shape: {}\nOutput shape: {}".format(
         x.shape, y.shape))
     return x,y
 

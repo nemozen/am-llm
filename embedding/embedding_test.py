@@ -48,6 +48,6 @@ def test_am_embedding_layer(s, expected_output):
     print("PASSED")
 
 test_am_embedding_layer("ሰላም ዓለም", "hello world")
-test_am_embedding_layer("የ ሴቶች እና የ ሕፃናት መብቶች", "of women and of babies rights")
+test_am_embedding_layer("የሴቶች እና የሕፃናት መብቶች", "women and children rights")
 test_am_embedding_layer("ቢግ ማክ", "big mac")
-test_am_embedding_layer("የ ኢትዮጵያ ቋንቋ", "of ethiopia language")
+test_am_embedding_layer("የኢትዮጵያ ቋንቋ", "ethiopia language")
