@@ -1,6 +1,6 @@
 # Large Language Model for Amharic
 
-Using text corpora from Amaric wikipedia and Ethiopian News Headlines,
+Using text corpora from Amharic wikipedia and Ethiopian News Headlines,
 we build AMBERT a language embedding bootstrapped off
 [BERT](https://github.com/google-research/bert) and [Google
 Translate](https://cloud.google.com/python/docs/reference/translate/latest/client). See

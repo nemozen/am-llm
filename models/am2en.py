@@ -17,9 +17,11 @@ MODEL_NAME="am2en_idinit"
 OUTPUT_TOKENS_TO_FILTER=["[PAD]"]
 
 logger = logging.getLogger("am2en")
-logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
+# Adjust logging level for this module by uncommenting the following:
+# logger.setLevel(logging.INFO)
+
 
 ambert = AmBert()
 bert = Bert()
@@ -113,7 +115,7 @@ if __name__ == '__main__':
 
         try:
             model.load_weights('{}.ckpt'.format(MODEL_NAME))
-            logger.info("Loaded model from {}.ckpt".format(MODEL_NAME))
+            logger.info("Loaded model weights from {}.ckpt".format(MODEL_NAME))
         except tf.errors.NotFoundError as e:
             logger.info(e)
 
@@ -124,6 +126,7 @@ if __name__ == '__main__':
                     "../../Amharic-English-Machine-Translation-Corpus/new-en.txt")
             model.fit(x, y, batch_size=BATCH_SIZE, epochs=args.train, verbose=True)
             model.save_weights('{}.ckpt'.format(MODEL_NAME))
+            logger.info("Saved model weights to {}.ckpt".format(MODEL_NAME))
 
         if args.predict:
             for line in sys.stdin:

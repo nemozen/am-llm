@@ -24,9 +24,10 @@ UNK_ID=100
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
+# Adjust logging level for this module by uncommenting the following:
+# logger.setLevel(logging.INFO)
 
 
 def get_tokenizer():
@@ -41,7 +42,7 @@ def get_bert_weights():
     bert_layer = hub.KerasLayer(BERT_BASE, trainable=True)
     W = bert_layer.get_weights()[0]
     assert len(get_tokenizer().vocab) == W.shape[0], "tokenizer and emedding size mismatch"
-    logger.info("bert weights matrix: {} {}".format(type(W), W.shape))
+    logger.debug("bert weights matrix: {} {}".format(type(W), W.shape))
     return W
 
 

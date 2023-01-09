@@ -50,4 +50,4 @@ def test_am_embedding_layer(s, expected_output):
 test_am_embedding_layer("ሰላም ዓለም", "hello world")
 test_am_embedding_layer("የ ሴቶች እና የ ሕፃናት መብቶች", "of women and of babies rights")
 test_am_embedding_layer("ቢግ ማክ", "big mac")
-test_am_embedding_layer("ስለ ኢትዮጵያ ረሃብ", "in ethiopia hunger")
+test_am_embedding_layer("የ ኢትዮጵያ ቋንቋ", "of ethiopia language")

@@ -20,9 +20,10 @@ WEIGHTS_NPY=os.path.join(os.getenv('AM_LLM'), "embedding/embedding_am.npy")
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
+# Adjust logging level for this module by uncommenting the following:
+# logger.setLevel(logging.INFO)
 
 
 def _get_ambert_weights():
@@ -46,7 +47,7 @@ def _get_ambert_weights():
                 logger.debug("{} rows\r".format(linenum))
 
     weights = np.array(W)
-    logger.info("AmBert weights matrix: {}".format(weights.shape))
+    logger.debug("AmBert weights matrix: {}".format(weights.shape))
     np.save(WEIGHTS_NPY, weights)
     return weights
 
