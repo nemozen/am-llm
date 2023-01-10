@@ -5,12 +5,13 @@ import logging
 import numpy as np
 import sys
 import tensorflow as tf
+from keras.callbacks import CSVLogger
 
 from embedding.ambert_embedding import AmBert
 from embedding.bert_embedding import Bert
 
 
-BATCH_SIZE=64
+BATCH_SIZE=32
 INPUT_WIDTH=10  # max length in tokens per row of input
 OUTPUT_WIDTH=32  # max length in tokens per row of output
 MODEL_NAME="am2en_idp"
@@ -125,7 +126,8 @@ if __name__ == '__main__':
             x, y = load_training_data(
                     "../../Amharic-English-Machine-Translation-Corpus/new-am.txt",
                     "../../Amharic-English-Machine-Translation-Corpus/new-en.txt")
-            model.fit(x, y, batch_size=BATCH_SIZE, epochs=args.train, verbose=True)
+            csv_logger = CSVLogger('log.csv', append=True, separator=';')
+            model.fit(x, y, batch_size=BATCH_SIZE, epochs=args.train, verbose=True, callbacks=[csv_logger])
             model.save_weights('{}.ckpt'.format(MODEL_NAME))
             logger.info("Saved model weights to {}.ckpt".format(MODEL_NAME))
 
