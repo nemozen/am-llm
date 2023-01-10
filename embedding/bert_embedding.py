@@ -17,12 +17,17 @@ from scipy.spatial.distance import cosine
 # https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12
 BERT_BASE=os.getenv('BERT_BASE')
 
-# Tokens and ids for padding and unknown word in BERT embedding. In the
-# output embeddings, we'll use the same tokens and give them id 0 and 1.
+# Special tokens (padding, unknown word) and their ids in BERT
+# embedding. In the output embeddings, we'll use the same tokens and
+# give them sequential ids, and the regular vocabulary token ids start
+# after that.
 PAD="[PAD]"
+BERT_PAD_ID=0
 PAD_ID=0
 UNK="[UNK]"
-UNK_ID=100
+BERT_UNK_ID=100
+UNK_ID=1
+NUM_SPECIAL_TOKENS=2
 
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stderr)
@@ -122,22 +127,23 @@ if __name__ == '__main__':
     parser.add_argument("--vocab", action='store_true', help="TSV of names and encoding ids (with header row)")
     args = parser.parse_args()
 
+    # vector and vocab sequence must match so outputs work together in
+    # e.g. ambert_embedding
+
     if args.vectors:
         bert = Bert()
-        # first row is PAD, second is UNK
-        print('\t'.join(str(x) for x in bert.weights[PAD_ID]))
-        print('\t'.join(str(x) for x in bert.weights[UNK_ID]))
+        print('\t'.join(str(x) for x in bert.weights[BERT_PAD_ID]))
+        print('\t'.join(str(x) for x in bert.weights[BERT_UNK_ID]))
         for line in sys.stdin:
             row = bert.phrase_embedding_vector(line.strip())
             print('\t'.join([str(x) for x in row]))
 
     if args.vocab:
         print("word\tid")
-        wid = 0
-        # first row is PAD, second is UNK
-        print('{}\t{}'.format(PAD, wid))
-        wid += 1
-        print('{}\t{}'.format(UNK, wid))
+        print('{}\t{}'.format(PAD, PAD_ID))
+        print('{}\t{}'.format(UNK, UNK_ID))
+        wid = UNK_ID
+        assert wid == NUM_SPECIAL_TOKENS-1, "ids must be sequential starting from 0"
         for line in sys.stdin:
             wid += 1
             print('{}\t{}'.format(line.strip(), wid))

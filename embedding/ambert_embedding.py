@@ -12,7 +12,7 @@ import tensorflow as tf
 import tensorflow_text as tf_text
 
 from embedding.amparser import WORD_SEP
-from embedding.bert_embedding import UNK
+from embedding.bert_embedding import UNK, PAD_ID
 
 EMBEDDING_TSV=os.path.join(os.getenv('AM_LLM'), "embedding/embedding_am.tsv")
 VOCAB_TSV=os.path.join(os.getenv('AM_LLM'), "embedding/vocab_am.tsv")
@@ -92,7 +92,7 @@ class AmBert():
         tokens = tokenizer.split(sentence)
         ids = self.convert_tokens_to_ids(tokens)
         if min_length:
-            ids += [0]*(min_length-len(ids))
+            ids += [PAD_ID]*(min_length-len(ids))
         return ids
 
     def get_embedding_layer(self, input_length=None):
