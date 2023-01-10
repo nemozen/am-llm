@@ -9,13 +9,14 @@ from keras.callbacks import CSVLogger
 
 from embedding.ambert_embedding import AmBert
 from embedding.bert_embedding import Bert
+from embedding.bert_embedding import PAD, PAD_ID, BERT_PAD_ID
 
 
 BATCH_SIZE=32
 INPUT_WIDTH=10  # max length in tokens per row of input
 OUTPUT_WIDTH=32  # max length in tokens per row of output
 MODEL_NAME="am2en_idp"
-OUTPUT_TOKENS_TO_FILTER=["[PAD]"]
+OUTPUT_TOKENS_TO_FILTER=[PAD]
 
 logger = logging.getLogger("am2en")
 handler = logging.StreamHandler(sys.stderr)
@@ -61,10 +62,10 @@ def load_training_data(xfile, yfile):
 
     # make rectangular
     for row in x:
-        row += [0]*(INPUT_WIDTH-len(row))
+        row += [PAD_ID]*(INPUT_WIDTH-len(row))
 
     for row in y:
-        row += [0]*(OUTPUT_WIDTH-len(row))
+        row += [BERT_PAD_ID]*(OUTPUT_WIDTH-len(row))
 
     for i in range(len(y)):
         y[i] = bert.get_embedding_layer()(tf.convert_to_tensor(y[i]))
@@ -138,7 +139,7 @@ if __name__ == '__main__':
                 for i in range(1+int(len(v)/INPUT_WIDTH)):
                     x = v[i*INPUT_WIDTH:(i+1)*INPUT_WIDTH]
                     # pad to length INPUT_WIDTH
-                    x += [0]*(INPUT_WIDTH-len(x))
+                    x += [PAD_ID]*(INPUT_WIDTH-len(x))
                     x = tf.convert_to_tensor([x], dtype=tf.float32)
                     logger.debug("Encoded input: {} {}".format(x.shape, x))
                     res = model(x)
