@@ -17,23 +17,22 @@ from scipy.spatial.distance import cosine
 # https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12
 BERT_BASE=os.getenv('BERT_BASE')
 
-# Special tokens (padding, unknown word) and their ids in BERT
-# embedding. In the output embeddings, we'll use the same tokens and
-# give them sequential ids, and the regular vocabulary token ids start
-# after that.
-PAD="[PAD]"
-BERT_PAD_ID=0
-PAD_ID=0
-UNK="[UNK]"
-BERT_UNK_ID=100
-UNK_ID=1
-NUM_SPECIAL_TOKENS=2
+# Special tokens and their ids in BERT embedding. In the output
+# embeddings, we'll use the same tokens and give them sequential ids
+# starting from 0, and the regular vocabulary token ids start after
+# that. This dict is the form token -> bert id
+SPECIAL_TOKENS = {
+    "[PAD]": 0,    # padding
+    "[UNK]": 100,  # unknown word
+    "[CLS]": 101,  # start of sentence
+    "[SEP]": 102   # end of sentence
+    }
 
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
 # Adjust logging level for this module
-# logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 
 def get_tokenizer():
@@ -44,7 +43,7 @@ def get_tokenizer():
 
 
 def get_bert_weights():
-    """ Return  weight matrix (list of vectors) of bert embedding"""
+    """ Return weight matrix (list of vectors) of bert embedding"""
     bert_layer = hub.KerasLayer(BERT_BASE, trainable=True)
     W = bert_layer.get_weights()[0]
     assert len(get_tokenizer().vocab) == W.shape[0], "tokenizer and emedding size mismatch"
@@ -132,18 +131,18 @@ if __name__ == '__main__':
 
     if args.vectors:
         bert = Bert()
-        print('\t'.join(str(x) for x in bert.weights[BERT_PAD_ID]))
-        print('\t'.join(str(x) for x in bert.weights[BERT_UNK_ID]))
+        for vid in SPECIAL_TOKENS.values():
+            print('\t'.join(str(x) for x in bert.weights[vid]))
         for line in sys.stdin:
             row = bert.phrase_embedding_vector(line.strip())
             print('\t'.join([str(x) for x in row]))
 
     if args.vocab:
         print("word\tid")
-        print('{}\t{}'.format(PAD, PAD_ID))
-        print('{}\t{}'.format(UNK, UNK_ID))
-        wid = UNK_ID
-        assert wid == NUM_SPECIAL_TOKENS-1, "ids must be sequential starting from 0"
+        wid = -1
+        for token in SPECIAL_TOKENS.keys():
+            wid += 1
+            print('{}\t{}'.format(token, wid))
         for line in sys.stdin:
             wid += 1
             print('{}\t{}'.format(line.strip(), wid))

@@ -12,7 +12,6 @@ import tensorflow as tf
 import tensorflow_text as tf_text
 
 from embedding.amparser import WORD_SEP
-from embedding.bert_embedding import UNK, PAD_ID
 
 EMBEDDING_TSV=os.path.join(os.getenv('AM_LLM'), "embedding/embedding_am.tsv")
 VOCAB_TSV=os.path.join(os.getenv('AM_LLM'), "embedding/vocab_am.tsv")
@@ -77,22 +76,22 @@ class AmBert():
             for row in reader:
                 self.vocab_dict[row['word']] = int(row['id'])
 
-    def convert_tokens_to_ids(self, tokens):
+    def convert_tokens_to_ids(self, tokens, min_length=None):
         ids = []
         for token in tokens.numpy()[0]:
             token = token.decode("utf-8")
             tid = self.vocab_dict.get(token,
-                                      self.vocab_dict.get(UNK))
+                                      self.vocab_dict.get("[UNK]"))
             ids.append(tid)
+        if min_length:
+            ids += [self.vocab_dict.get("[PAD]")]*(min_length-len(ids))
         return ids
 
     def encode(self, sentence, min_length=None):
         """sentence -> list of word ids. Pad to min_length if specified."""
         tokenizer = tf_text.RegexSplitter(WORD_SEP)
         tokens = tokenizer.split(sentence)
-        ids = self.convert_tokens_to_ids(tokens)
-        if min_length:
-            ids += [PAD_ID]*(min_length-len(ids))
+        ids = self.convert_tokens_to_ids(tokens, min_length)
         return ids
 
     def get_embedding_layer(self, input_length=None):
