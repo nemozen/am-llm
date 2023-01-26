@@ -11,6 +11,7 @@ import os
 import sys
 import tensorflow as tf
 import tensorflow_hub as hub
+from collections import OrderedDict
 from official.nlp.bert import tokenization
 from scipy.spatial.distance import cosine
 
@@ -18,21 +19,21 @@ from scipy.spatial.distance import cosine
 BERT_BASE=os.getenv('BERT_BASE')
 
 # Special tokens and their ids in BERT embedding. In the output
-# embeddings, we'll use the same tokens and give them sequential ids
+# embeddings, we use the same tokens and give them sequential ids
 # starting from 0, and the regular vocabulary token ids start after
-# that. This dict is the form token -> bert id
-SPECIAL_TOKENS = {
-    "[PAD]": 0,    # padding
-    "[UNK]": 100,  # unknown word
-    "[CLS]": 101,  # start of sentence
-    "[SEP]": 102   # end of sentence
-    }
+# that. This dict is the form token -> (bert id, our id)
+SPECIAL_TOKENS = OrderedDict([
+    ("[PAD]", (0,0)),    # padding
+    ("[UNK]", (100,1)),  # unknown word
+    ("[CLS]", (101,2)),  # start of sentence
+    ("[SEP]", (102,3))   # end of sentence
+    ])
 
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
 # Adjust logging level for this module
-logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 
 
 def get_tokenizer():
@@ -101,7 +102,7 @@ class Bert():
         https://medium.com/data-from-the-trenches/arithmetic-properties-of-word-embeddings-e918e3fda2ac
         but not always e.g. "children's" ends up closer to "s" than
         "children".
-        # TODO: improve with normalization
+        # TODO: improve using output of full bert model instead of first layer weights
         """
         embedding_dims = self.weights.shape[1]
         vec = np.array([0]*embedding_dims)
@@ -131,8 +132,8 @@ if __name__ == '__main__':
 
     if args.vectors:
         bert = Bert()
-        for vid in SPECIAL_TOKENS.values():
-            print('\t'.join(str(x) for x in bert.weights[vid]))
+        for wids in SPECIAL_TOKENS.values():
+            print('\t'.join(str(x) for x in bert.weights[wids[0]]))
         for line in sys.stdin:
             row = bert.phrase_embedding_vector(line.strip())
             print('\t'.join([str(x) for x in row]))
@@ -140,8 +141,8 @@ if __name__ == '__main__':
     if args.vocab:
         print("word\tid")
         wid = -1
-        for token in SPECIAL_TOKENS.keys():
-            wid += 1
+        for token,wids in SPECIAL_TOKENS.items():
+            wid = wids[1]
             print('{}\t{}'.format(token, wid))
         for line in sys.stdin:
             wid += 1
