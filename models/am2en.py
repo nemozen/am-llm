@@ -37,7 +37,8 @@ def load_training_data(xfile, yfile):
         i = -1
         for row in infile:
             i += 1
-            xr = ambert.encode(row)
+            xr = [SPECIAL_TOKENS["[CLS]"][1]] + ambert.encode(row) + \
+                 [SPECIAL_TOKENS["[SEP]"][1]]
             if len(xr) > INPUT_WIDTH:
                 continue
             rows_to_keep.append(i)
@@ -52,7 +53,8 @@ def load_training_data(xfile, yfile):
             if i not in rows_to_keep:
                 continue
             xi += 1
-            yr = bert.encode(row)
+            yr = [SPECIAL_TOKENS["[CLS]"][0]] + bert.encode(row) + \
+                 [SPECIAL_TOKENS["[SEP]"][0]]
             if len(yr) > OUTPUT_WIDTH:
                 del x[xi]
                 xi -= 1
@@ -61,7 +63,7 @@ def load_training_data(xfile, yfile):
 
     # make rectangular
     for row in x:
-        row += [SPECIAL_TOKENS.get("[PAD]")[1]]*(INPUT_WIDTH-len(row))
+        row += [SPECIAL_TOKENS["[PAD]"][1]]*(INPUT_WIDTH-len(row))
 
     for row in y:
         row += [SPECIAL_TOKENS.get("[PAD]")[0]]*(OUTPUT_WIDTH-len(row))
@@ -166,7 +168,8 @@ if __name__ == '__main__':
 
         if args.predict:
             for line in sys.stdin:
-                v = ambert.encode(line)
+                v = [SPECIAL_TOKENS["[CLS]"][1]] + ambert.encode(line) + \
+                    [SPECIAL_TOKENS["[SEP]"][1]]
                 # break line up in chunks of size at most INPUT_WIDTH
                 for i in range(1+int(len(v)/INPUT_WIDTH)):
                     x = v[i*INPUT_WIDTH:(i+1)*INPUT_WIDTH]
