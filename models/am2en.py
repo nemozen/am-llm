@@ -94,12 +94,16 @@ def build_attention_model(input_width, output_width):
                                 shape=(input_width,))
     embedding = ambert.get_embedding_layer(input_width)(input_layer)
     # TODO: add position encoding to embedding output
-    attention_layers = []
+
+    # ENCODER
+
+    # attention
+    attention_heads = []
     for i in range(ATTN_HEADS):
         if i == 0:
             query_ = embedding
         else:
-            query_ = attention_layers[i-1]
+            query_ = attention_heads[i-1]
         query = tf.keras.layers.Dense(ATTN_DIM,
                                       name="query{}".format(i))(query_)
         value = tf.keras.layers.Dense(ATTN_DIM,
@@ -107,23 +111,30 @@ def build_attention_model(input_width, output_width):
         key = tf.keras.layers.Dense(ATTN_DIM,
                                     name="key{}".format(i))(embedding)
         attn = tf.keras.layers.Attention()([query, value, key])
-        attention_layers.append(attn)
+        attention_heads.append(attn)
 
-    attention = tf.keras.layers.Concatenate()(attention_layers)
-    encoding = tf.keras.layers.Dense(embedding_dims, name="encoding_out")(attention)
-    # input + output and layer normalization along embedding
-    # dimension, i.e. last axis
-    xpz = tf.keras.layers.Add()([embedding, encoding])
-    norm_encoding = tf.keras.layers.LayerNormalization()(xpz)
+    mhattention = tf.keras.layers.Concatenate()(attention_heads)
+    # trainable linear combination of heads
+    attention = tf.keras.layers.Dense(embedding_dims, name="enc_attention")(mhattention)
+    # residual sum and layer normalization along embedding dimension, i.e. last axis
+    xpz = tf.keras.layers.Add()([embedding, attention])
+    norm_attention = tf.keras.layers.LayerNormalization()(xpz)
 
     # feed forward
-    ff_in = tf.keras.layers.Reshape((1, input_width*embedding_dims))(norm_encoding)
-    ff = tf.keras.layers.Dense(embedding_dims*output_width, name="ff")(ff_in)
+    ff1 = tf.keras.layers.Dense(units=embedding_dims, name="ff1",
+                                activation="relu")(norm_attention)
+    # normalize after feed forward
+    xpz2 = tf.keras.layers.Add()([norm_attention, ff1])
+    norm_ff = tf.keras.layers.LayerNormalization()(xpz2)
 
-    # TODO: add decoder attention, FF and normalization layers
+    # DECODER
 
-    output_layer = tf.keras.layers.Reshape(
-        (output_width, embedding_dims))(ff)
+    decoder_in = tf.keras.layers.Reshape((1, input_width*embedding_dims))(norm_ff)
+    out1 = tf.keras.layers.Dense(embedding_dims*output_width)(decoder_in)
+    # TODO: add decoder attention before FF and normalization layers
+    norm_out = tf.keras.layers.LayerNormalization()(out1)
+
+    output_layer = tf.keras.layers.Reshape((output_width, embedding_dims))(norm_out)
     model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
     return model
 
