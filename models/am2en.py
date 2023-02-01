@@ -192,13 +192,16 @@ if __name__ == '__main__':
             x, y = load_training_data(
                     "../../Amharic-English-Machine-Translation-Corpus/new-am.txt",
                     "../../Amharic-English-Machine-Translation-Corpus/new-en.txt")
-            csv_logger = CSVLogger('log.csv', append=True, separator=';')
+            csv_logger = CSVLogger('log.csv', append=True, separator='\t')
             model.fit(x, y, batch_size=BATCH_SIZE, epochs=args.train, verbose=True, callbacks=[csv_logger])
             model.save_weights('{}.ckpt'.format(model_name))
             logger.info("Saved model weights to {}.ckpt".format(model_name))
 
         if args.predict:
             for line in sys.stdin:
+                if not line.strip():
+                    print(line, end='')  # echo empty line
+                    continue
                 v = [SPECIAL_TOKENS["[CLS]"][1]] + ambert.encode(line) + \
                     [SPECIAL_TOKENS["[SEP]"][1]]
                 # break line up in chunks of size at most INPUT_WIDTH
