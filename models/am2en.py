@@ -14,14 +14,16 @@ from embedding.bert_embedding import SPECIAL_TOKENS
 
 BATCH_SIZE=32
 INPUT_WIDTH=10  # max length in tokens per row of input
-OUTPUT_WIDTH=32  # max length in tokens per row of output
+OUTPUT_WIDTH=20  # max length in tokens per row of output
 OUTPUT_TOKENS_TO_FILTER=["[PAD]"]
+ATTN_DIM=64  # dimensionality of query, key, value vectors in attention model
+ATTN_HEADS=8  # number of "heads" in multihead attention model
 
 logger = logging.getLogger("am2en")
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
-# Adjust logging level for this module
-logger.setLevel(logging.DEBUG)
+# Set logging level for this module
+logger.setLevel(logging.INFO)
 
 
 ambert = AmBert()
@@ -83,28 +85,45 @@ def load_training_data(xfile, yfile):
 
 
 def build_attention_model(input_width, output_width):
-    input_layer =tf.keras.Input(batch_size=BATCH_SIZE, shape=(input_width,))
-    ambert_layer = ambert.get_embedding_layer(input_width)(input_layer)
+    '''Attention model based on [Vaswami et al, 2017]
+    (https://arxiv.org/abs/1706.03762) and [The Illustrated transformer]
+    (https://jalammar.github.io/illustrated-transformer/)
+
+    '''
+    input_layer =tf.keras.Input(batch_size=BATCH_SIZE,
+                                shape=(input_width,))
+    embedding = ambert.get_embedding_layer(input_width)(input_layer)
     # TODO: add position encoding to embedding output
     attention_layers = []
-    for i in range(output_width):
+    for i in range(ATTN_HEADS):
         if i == 0:
-            query_ = ambert_layer
+            query_ = embedding
         else:
             query_ = attention_layers[i-1]
-        query = tf.keras.layers.Dense(embedding_dims,
+        query = tf.keras.layers.Dense(ATTN_DIM,
                                       name="query{}".format(i))(query_)
-        value = tf.keras.layers.Dense(embedding_dims,
-                                      name="value{}".format(i))(ambert_layer)
-        key = tf.keras.layers.Dense(embedding_dims,
-                                    name="key{}".format(i))(ambert_layer)
+        value = tf.keras.layers.Dense(ATTN_DIM,
+                                      name="value{}".format(i))(embedding)
+        key = tf.keras.layers.Dense(ATTN_DIM,
+                                    name="key{}".format(i))(embedding)
         attn = tf.keras.layers.Attention()([query, value, key])
         attention_layers.append(attn)
 
     attention = tf.keras.layers.Concatenate()(attention_layers)
-    reduced = tf.keras.layers.GlobalAveragePooling1D()(attention)
+    encoding = tf.keras.layers.Dense(embedding_dims, name="encoding_out")(attention)
+    # input + output and layer normalization along embedding
+    # dimension, i.e. last axis
+    xpz = tf.keras.layers.Add()([embedding, encoding])
+    norm_encoding = tf.keras.layers.LayerNormalization()(xpz)
+
+    # feed forward
+    ff_in = tf.keras.layers.Reshape((1, input_width*embedding_dims))(norm_encoding)
+    ff = tf.keras.layers.Dense(embedding_dims*output_width, name="ff")(ff_in)
+
+    # TODO: add decoder attention, FF and normalization layers
+
     output_layer = tf.keras.layers.Reshape(
-        (output_width, embedding_dims))(reduced)
+        (output_width, embedding_dims))(ff)
     model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
     return model
 
@@ -116,11 +135,12 @@ def build_idp_model(input_width, output_width):
     i.e. vectors in the input embedding will be close to the vectors
     with similar meaning in the output embedding. So we initialize the
     dense layer in the middle with the identity kernel.
+
     '''
     input_layer =tf.keras.Input(batch_size=BATCH_SIZE, shape=(input_width,))
-    ambert_layer = ambert.get_embedding_layer(input_width)(input_layer)
+    embedding = ambert.get_embedding_layer(input_width)(input_layer)
     flatten_layer = tf.keras.layers.Reshape(
-        (1, embedding_dims*input_width))(ambert_layer)
+        (1, embedding_dims*input_width))(embedding)
     dense_layer = tf.keras.layers.Dense(
         embedding_dims*output_width,
         activation='relu',
