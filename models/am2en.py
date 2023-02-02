@@ -182,7 +182,7 @@ if __name__ == '__main__':
                                   show_shapes=True)
 
         try:
-            model.load_weights('{}.ckpt'.format(model_name))
+            model.load_weights('{}.ckpt'.format(model_name)).expect_partial()
             logger.info("Loaded model weights from {}.ckpt".format(model_name))
         except tf.errors.NotFoundError as e:
             logger.info(e)
