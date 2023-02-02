@@ -18,6 +18,7 @@ OUTPUT_WIDTH=20  # max length in tokens per row of output
 OUTPUT_TOKENS_TO_FILTER=["[PAD]"]
 ATTN_DIM=64  # dimensionality of query, key, value vectors in attention model
 ATTN_HEADS=8  # number of "heads" in multihead attention model
+# TODO: ATTN_DIM should be embedding_dims/ATTN_HEADS=96 ?
 
 logger = logging.getLogger("am2en")
 handler = logging.StreamHandler(sys.stderr)
@@ -84,10 +85,112 @@ def load_training_data(xfile, yfile):
     return x,y
 
 
-def build_attention_model(input_width, output_width):
-    '''Attention model based on [Vaswami et al, 2017]
-    (https://arxiv.org/abs/1706.03762) and [The Illustrated transformer]
+def build_transformer_model(input_width, output_width):
+    '''Attention model based on
+    [Vaswami et al, 2017]
+    (https://arxiv.org/abs/1706.03762)
+    [The Illustrated transformer]
     (https://jalammar.github.io/illustrated-transformer/)
+    [Attention is all you need: Discovering the Transformer paper]
+    (https://towardsdatascience.com/attention-is-all-you-need-discovering-the-transformer-paper-73e5ff5e0634)
+    '''
+    input_layer =tf.keras.Input(batch_size=BATCH_SIZE,
+                                shape=(input_width,))
+    embedding = ambert.get_embedding_layer(input_width)(input_layer)
+    # TODO: add position encoding to embedding output
+
+    # TODO: use_scale
+
+    # ENCODER
+
+    # attention
+    attention_heads = []
+    for i in range(ATTN_HEADS):
+        query = tf.keras.layers.Dense(ATTN_DIM,
+                                      name="query{}".format(i))(embedding)
+        value = tf.keras.layers.Dense(ATTN_DIM,
+                                      name="value{}".format(i))(embedding)
+        key = tf.keras.layers.Dense(ATTN_DIM,
+                                    name="key{}".format(i))(embedding)
+        attn = tf.keras.layers.Attention()([query, value, key])
+        attention_heads.append(attn)
+
+    mhattention = tf.keras.layers.Concatenate()(attention_heads)
+    # trainable linear combination of heads
+    attention = tf.keras.layers.Dense(embedding_dims,
+                                      name="enc_attention_linear")(mhattention)
+    # residual sum and layer normalization along embedding dimension, i.e. last axis
+    xpz = tf.keras.layers.Add()([embedding, attention])
+    norm_attention = tf.keras.layers.LayerNormalization()(xpz)
+
+    # feed forward
+    enc_ff = tf.keras.layers.Dense(units=embedding_dims, name="enc_ff",
+                                   activation="relu")(norm_attention)
+    # normalize after feed forward
+    xpz2 = tf.keras.layers.Add()([norm_attention, enc_ff])
+    encoder_out = tf.keras.layers.LayerNormalization()(xpz2)
+
+    # DECODER
+
+    # self attention
+    decoder_attention_heads = []
+    for i in range(ATTN_HEADS):
+        query = tf.keras.layers.Dense(ATTN_DIM,
+                                      name="ds_query{}".format(i))(encoder_out)
+        value = tf.keras.layers.Dense(ATTN_DIM,
+                                      name="ds_value{}".format(i))(encoder_out)
+        key = tf.keras.layers.Dense(ATTN_DIM,
+                                    name="ds_key{}".format(i))(encoder_out)
+        attn = tf.keras.layers.Attention()([query, value, key], use_causal_mask=True)
+        decoder_attention_heads.append(attn)
+
+    dec_mhattn = tf.keras.layers.Concatenate()(decoder_attention_heads)
+    # trainable linear combination of heads
+    decoder_attention = tf.keras.layers.Dense(
+        embedding_dims, name="dec_attention_linear")(dec_mhattn)
+    # residual sum and layer normalization along embedding dimension, i.e. last axis
+    dec_xpz = tf.keras.layers.Add()([encoder_out, decoder_attention])
+    norm_dec_attention = tf.keras.layers.LayerNormalization()(dec_xpz)
+
+    # encoder-decoder attention
+    encdec_attention_heads = []
+    for i in range(ATTN_HEADS):
+        query = tf.keras.layers.Dense(ATTN_DIM,
+                                      name="ec_query{}".format(i))(norm_dec_attention)
+        value = tf.keras.layers.Dense(ATTN_DIM,
+                                      name="ec_value{}".format(i))(encoder_out)
+        key = tf.keras.layers.Dense(ATTN_DIM,
+                                    name="ec_key{}".format(i))(encoder_out)
+        attn = tf.keras.layers.Attention()([query, value, key])  # mask/shift right?
+        encdec_attention_heads.append(attn)
+
+    encdec_mhattn = tf.keras.layers.Concatenate()(encdec_attention_heads)
+    # trainable linear combination of heads
+    encdec_attention = tf.keras.layers.Dense(
+        embedding_dims, name="encdec_attention_linear")(encdec_mhattn)
+    # residual sum and layer normalization along embedding dimension, i.e. last axis
+    encdec_xpz = tf.keras.layers.Add()([norm_dec_attention, encdec_attention])
+    norm_encdec_attention = tf.keras.layers.LayerNormalization()(encdec_xpz)
+
+    # feed forward
+    decoder_ff = tf.keras.layers.Dense(units=embedding_dims, name="dec_ff",
+                                       activation="relu")(norm_encdec_attention)
+    # normalize after feed forward
+    dec_xpz2 = tf.keras.layers.Add()([norm_encdec_attention, decoder_ff])
+    norm_decoder_ff = tf.keras.layers.LayerNormalization()(dec_xpz2)
+
+    # LINEAR
+
+    dec_flat = tf.keras.layers.Reshape((1, input_width*embedding_dims))(norm_decoder_ff)
+    out_linear = tf.keras.layers.Dense(embedding_dims*output_width)(dec_flat)
+    output_layer = tf.keras.layers.Reshape((output_width, embedding_dims))(out_linear)
+    model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
+    return model
+
+
+def build_attention_model(input_width, output_width):
+    '''Attention model, with a single multi-head dot-product attention
+    layer.
 
     '''
     input_layer =tf.keras.Input(batch_size=BATCH_SIZE,
@@ -131,7 +234,6 @@ def build_attention_model(input_width, output_width):
 
     decoder_in = tf.keras.layers.Reshape((1, input_width*embedding_dims))(norm_ff)
     out1 = tf.keras.layers.Dense(embedding_dims*output_width)(decoder_in)
-    # TODO: add decoder attention before FF and normalization layers
     norm_out = tf.keras.layers.LayerNormalization()(out1)
 
     output_layer = tf.keras.layers.Reshape((output_width, embedding_dims))(norm_out)
@@ -164,8 +266,9 @@ def build_idp_model(input_width, output_width):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Amharic to English translator.")
-    parser.add_argument("--model", type=str, default="attention",
-                        choices=["attention", "idp"], help="name of model to use")
+    parser.add_argument("--model", type=str, default="transformer",
+                        choices=["transformer", "attention", "idp"],
+                        help="name of model to use")
     parser.add_argument("--train", type=int, default=0,
                         help="train model for this number of epochs")
     parser.add_argument("--predict", action='store_true', help="translate from stdin")
@@ -213,6 +316,7 @@ if __name__ == '__main__':
                     logger.debug("Encoded input: {} {}".format(x.shape, x))
                     res = model(x)
                     logger.debug("Result shape: {}".format(res.shape))
+                    # TODO use softmax layer in model instead of bert.decode
                     for r in res:
                         output = ' '.join(
                             filter(lambda token: token not in OUTPUT_TOKENS_TO_FILTER,
