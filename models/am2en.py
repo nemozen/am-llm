@@ -16,16 +16,14 @@ BATCH_SIZE=32
 INPUT_WIDTH=10  # max length in tokens per row of input
 OUTPUT_WIDTH=20  # max length in tokens per row of output
 OUTPUT_TOKENS_TO_FILTER=["[PAD]"]
-ATTN_DIM=64  # dimensionality of query, key, value vectors in attention model
 ATTN_HEADS=8  # number of "heads" in multihead attention model
-# TODO: ATTN_DIM should be embedding_dims/ATTN_HEADS=96 ?
+
 
 logger = logging.getLogger("am2en")
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
 # Set logging level for this module
 logger.setLevel(logging.INFO)
-
 
 ambert = AmBert()
 bert = Bert()
@@ -85,7 +83,7 @@ def load_training_data(xfile, yfile):
     return x,y
 
 
-def build_transformer_model(input_width, output_width):
+def build_scaled_transformer_model(input_width, output_width):
     '''Attention model based on
     [Vaswami et al, 2017]
     (https://arxiv.org/abs/1706.03762)
@@ -94,25 +92,26 @@ def build_transformer_model(input_width, output_width):
     [Attention is all you need: Discovering the Transformer paper]
     (https://towardsdatascience.com/attention-is-all-you-need-discovering-the-transformer-paper-73e5ff5e0634)
     '''
+    # dimensionality of query, key, value
+    attn_dims = embedding_dims/ATTN_HEADS
+
     input_layer =tf.keras.Input(batch_size=BATCH_SIZE,
                                 shape=(input_width,))
     embedding = ambert.get_embedding_layer(input_width)(input_layer)
     # TODO: add position encoding to embedding output
-
-    # TODO: use_scale
 
     # ENCODER
 
     # attention
     attention_heads = []
     for i in range(ATTN_HEADS):
-        query = tf.keras.layers.Dense(ATTN_DIM,
+        query = tf.keras.layers.Dense(attn_dims,
                                       name="query{}".format(i))(embedding)
-        value = tf.keras.layers.Dense(ATTN_DIM,
+        value = tf.keras.layers.Dense(attn_dims,
                                       name="value{}".format(i))(embedding)
-        key = tf.keras.layers.Dense(ATTN_DIM,
+        key = tf.keras.layers.Dense(attn_dims,
                                     name="key{}".format(i))(embedding)
-        attn = tf.keras.layers.Attention()([query, value, key])
+        attn = tf.keras.layers.Attention(use_scale=True)([query, value, key])
         attention_heads.append(attn)
 
     mhattention = tf.keras.layers.Concatenate()(attention_heads)
@@ -126,6 +125,8 @@ def build_transformer_model(input_width, output_width):
     # feed forward
     enc_ff = tf.keras.layers.Dense(units=embedding_dims, name="enc_ff",
                                    activation="relu")(norm_attention)
+    # TODO: add linear layer to FF
+
     # normalize after feed forward
     xpz2 = tf.keras.layers.Add()([norm_attention, enc_ff])
     encoder_out = tf.keras.layers.LayerNormalization()(xpz2)
@@ -133,15 +134,17 @@ def build_transformer_model(input_width, output_width):
     # DECODER
 
     # self attention
+    prev_layer_out = encoder_out  # if stacked, this is previous layer's output
     decoder_attention_heads = []
     for i in range(ATTN_HEADS):
-        query = tf.keras.layers.Dense(ATTN_DIM,
-                                      name="ds_query{}".format(i))(encoder_out)
-        value = tf.keras.layers.Dense(ATTN_DIM,
-                                      name="ds_value{}".format(i))(encoder_out)
-        key = tf.keras.layers.Dense(ATTN_DIM,
-                                    name="ds_key{}".format(i))(encoder_out)
-        attn = tf.keras.layers.Attention()([query, value, key], use_causal_mask=True)
+        query = tf.keras.layers.Dense(attn_dims,
+                                      name="ds_query{}".format(i))(prev_layer_out)
+        value = tf.keras.layers.Dense(attn_dims,
+                                      name="ds_value{}".format(i))(prev_layer_out)
+        key = tf.keras.layers.Dense(attn_dims,
+                                    name="ds_key{}".format(i))(prev_layer_out)
+        attn = tf.keras.layers.Attention(use_scale=True)(
+            [query, value, key], use_causal_mask=True)
         decoder_attention_heads.append(attn)
 
     dec_mhattn = tf.keras.layers.Concatenate()(decoder_attention_heads)
@@ -153,15 +156,16 @@ def build_transformer_model(input_width, output_width):
     norm_dec_attention = tf.keras.layers.LayerNormalization()(dec_xpz)
 
     # encoder-decoder attention
+    query_in = norm_dec_attention  # if stacked, this is previous layer output
     encdec_attention_heads = []
     for i in range(ATTN_HEADS):
-        query = tf.keras.layers.Dense(ATTN_DIM,
-                                      name="ec_query{}".format(i))(norm_dec_attention)
-        value = tf.keras.layers.Dense(ATTN_DIM,
+        query = tf.keras.layers.Dense(attn_dims,
+                                      name="ec_query{}".format(i))(query_in)
+        value = tf.keras.layers.Dense(attn_dims,
                                       name="ec_value{}".format(i))(encoder_out)
-        key = tf.keras.layers.Dense(ATTN_DIM,
+        key = tf.keras.layers.Dense(attn_dims,
                                     name="ec_key{}".format(i))(encoder_out)
-        attn = tf.keras.layers.Attention()([query, value, key])  # mask/shift right?
+        attn = tf.keras.layers.Attention(use_scale=True)([query, value, key])  # mask/shift right?
         encdec_attention_heads.append(attn)
 
     encdec_mhattn = tf.keras.layers.Concatenate()(encdec_attention_heads)
@@ -193,6 +197,7 @@ def build_attention_model(input_width, output_width):
     layer.
 
     '''
+    ATTN_DIM=64
     input_layer =tf.keras.Input(batch_size=BATCH_SIZE,
                                 shape=(input_width,))
     embedding = ambert.get_embedding_layer(input_width)(input_layer)
@@ -266,8 +271,8 @@ def build_idp_model(input_width, output_width):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Amharic to English translator.")
-    parser.add_argument("--model", type=str, default="transformer",
-                        choices=["transformer", "attention", "idp"],
+    parser.add_argument("--model", type=str, default="scaled_transformer",
+                        choices=["scaled_transformer", "attention", "idp"],
                         help="name of model to use")
     parser.add_argument("--train", type=int, default=0,
                         help="train model for this number of epochs")
@@ -295,7 +300,7 @@ if __name__ == '__main__':
             x, y = load_training_data(
                     "../../Amharic-English-Machine-Translation-Corpus/new-am.txt",
                     "../../Amharic-English-Machine-Translation-Corpus/new-en.txt")
-            csv_logger = CSVLogger('log.csv', append=True, separator='\t')
+            csv_logger = CSVLogger('{}_log.csv'.format(model_name), append=True, separator='\t')
             model.fit(x, y, batch_size=BATCH_SIZE, epochs=args.train, verbose=True, callbacks=[csv_logger])
             model.save_weights('{}.ckpt'.format(model_name))
             logger.info("Saved model weights to {}.ckpt".format(model_name))
