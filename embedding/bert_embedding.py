@@ -78,18 +78,20 @@ class Bert():
         ids = self.tokenizer.convert_tokens_to_ids(tokens)
         return ids
 
-
-    def decode(self, v):
-        """Decode one vector into one token, the most similar in BERT."""
+    def convert_vector_to_ids(self, v):
+        """Return the ids of the top 5 vectors closest by cosine-similarity to v."""
         scores_ids = list(map(lambda x: (cosine(x[0], v), x[1]),
                               zip(self.weights,
                                   range(self.weights.shape[0]))))
         scores_ids.sort(key=lambda x: x[0], reverse=False)
-        best_ids = [s[1] for s in scores_ids]
-        best_words = self.tokenizer.convert_ids_to_tokens(best_ids)
-        logger.debug("decoded: {} {}".format(best_words[:5], scores_ids[:5]))
-        return best_words[0]
+        return [s[1] for s in scores_ids]
 
+    def decode(self, v):
+        """Decode one vector into one token, the most similar in BERT."""
+        best_ids = self.convert_vector_to_ids(v)
+        best_words = self.tokenizer.convert_ids_to_tokens(best_ids)
+        logger.debug("decoded: {}".format(best_words[:5]))
+        return best_words[0]
 
     def phrase_embedding_vector(self, phrase):
         """Given a string, returns a vector of floats of size embeddding_dims.
