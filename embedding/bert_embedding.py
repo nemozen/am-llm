@@ -15,6 +15,7 @@ from collections import OrderedDict
 from official.nlp.bert import tokenization
 from scipy.spatial.distance import cosine
 
+
 # https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12
 BERT_BASE=os.getenv('BERT_BASE')
 
@@ -32,8 +33,9 @@ SPECIAL_TOKENS = OrderedDict([
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
-# Adjust logging level for this module
 # logger.setLevel(logging.DEBUG)
+
+_bert_instance = None
 
 
 def get_tokenizer():
@@ -121,6 +123,13 @@ class Bert():
             embeddings_initializer=BertMatrixInitializer(self.weights),
             input_length=input_length)
         return embedding_layer
+
+
+def get_bert_instance():
+    global _bert_instance
+    if not _bert_instance:
+        _bert_instance = Bert()
+    return _bert_instance
 
 
 if __name__ == '__main__':

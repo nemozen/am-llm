@@ -10,19 +10,19 @@ import os
 import sys
 import tensorflow as tf
 import tensorflow_text as tf_text
-
 from embedding.amparser import WORD_SEP
+
 
 EMBEDDING_TSV=os.path.join(os.getenv('AM_LLM'), "embedding/embedding_am.tsv")
 VOCAB_TSV=os.path.join(os.getenv('AM_LLM'), "embedding/vocab_am.tsv")
 WEIGHTS_NPY=os.path.join(os.getenv('AM_LLM'), "embedding/embedding_am.npy")
 
-
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stderr)
 logger.addHandler(handler)
-# Adjust logging level for this module
 # logger.setLevel(logging.INFO)
+
+_ambert_instance = None
 
 
 def _get_ambert_weights():
@@ -102,3 +102,10 @@ class AmBert():
             input_length=input_length,
             trainable = False)
         return embedding_layer
+
+
+def get_ambert_instance():
+    global _ambert_instance
+    if not _ambert_instance:
+        _ambert_instance = AmBert()
+    return _ambert_instance
